@@ -30,7 +30,8 @@
         "employment_type": "ok",
         "region": "ok",
         "channel": "ok"
-      }
+      },
+      "insufficient": false
     },
     {
       "label": "2026-02",
@@ -61,7 +62,8 @@
         "employment_type": "ok",
         "region": "ok",
         "channel": "ok"
-      }
+      },
+      "insufficient": false
     },
     {
       "label": "2026-03",
@@ -94,7 +96,8 @@
         "employment_type": "ok",
         "region": "ok",
         "channel": "ok"
-      }
+      },
+      "insufficient": false
     },
     {
       "label": "2026-04",
@@ -128,7 +131,8 @@
         "employment_type": "ok",
         "region": "ok",
         "channel": "ok"
-      }
+      },
+      "insufficient": false
     },
     {
       "label": "2026-05",
@@ -164,7 +168,8 @@
         "employment_type": "ok",
         "region": "ok",
         "channel": "ok"
-      }
+      },
+      "insufficient": false
     },
     {
       "label": "2026-06",
@@ -202,7 +207,8 @@
         "employment_type": "ok",
         "region": "ok",
         "channel": "warning"
-      }
+      },
+      "insufficient": false
     },
     {
       "label": "2026-07",
@@ -240,7 +246,8 @@
         "employment_type": "ok",
         "region": "ok",
         "channel": "critical"
-      }
+      },
+      "insufficient": false
     },
     {
       "label": "2026-08",
@@ -279,7 +286,8 @@
         "employment_type": "ok",
         "region": "ok",
         "channel": "critical"
-      }
+      },
+      "insufficient": false
     }
   ],
   "columns": [
@@ -293,7 +301,7 @@
     "channel"
   ],
   "meta": {
-    "generated_at": "2026-09-04T17:38:38+00:00",
+    "generated_at": "2026-09-04T17:56:41+00:00",
     "config": {
       "thresholds": {
         "psi_warning": 0.1,
@@ -326,7 +334,7 @@
       "identifier_min_rows": 100,
       "adversarial_enabled": true,
       "adversarial_max_rows": 50000,
-      "adversarial_n_jobs": 1,
+      "adversarial_n_jobs": null,
       "random_state": 42,
       "numeric_columns": null,
       "categorical_columns": null,
@@ -335,6 +343,8 @@
       "prediction_column": null,
       "value_bounds": null,
       "allowed_categories": null
-    }
+    },
+    "dropped_rows": 0,
+    "total_rows": 24000
   }
 }

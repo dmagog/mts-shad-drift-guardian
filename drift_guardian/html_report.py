@@ -288,8 +288,11 @@ def render_html_report(
             "чем выше, тем сильнее изменилась совместная структура признаков.",
             [(" бэкенд", adversarial["backend"]), (" строк использовано", fmt_int(adversarial["n_rows_used"]))],
         )
+        if adversarial.get("note"):
+            adv_hero += note(adversarial["note"])
     else:
         adv_hero = note("Adversarial validation не выполнялась.")
+    engine_notes = "".join(note(text) for text in meta.get("notes", []))
 
     body = _REPORT_BODY.render(
         topbar=topbar("отчёт о дрейфе данных", f"сформирован {generated}"),
@@ -301,7 +304,7 @@ def render_html_report(
         special=special,
         issues_section=section("Замечания к данным", str(len(alerts))),
         issues_html=issue_list([(i["severity"], i["message"], CHECK_LABELS.get(i["check"], i["check"])) for i in alerts]) if alerts else "",
-        infos_note=note(" ".join(i["message"] for i in infos)) if infos else "",
+        infos_note=engine_notes + (note(" ".join(i["message"] for i in infos)) if infos else ""),
         all_section=section("Все признаки"),
         headers=["Признак", "Тип", "Статус", "PSI", "JS", "Вассерштейн (норм.)", "KS / χ²", "p-value"],
         summary_rows=summary_rows,

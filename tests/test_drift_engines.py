@@ -125,3 +125,13 @@ def test_guard_can_be_disabled():
     report = analyze_numeric_column("x", ref, cur, config, alpha_effective=0.05)
     psi_test = next(t for t in report.tests if t.name == "psi")
     assert "underpowered" not in psi_test.details
+
+
+def test_infinite_values_do_not_break_numeric_tests():
+    rng = np.random.default_rng(12)
+    ref, cur = _frames(rng.normal(0, 1, 3000), rng.normal(0, 1, 3000))
+    cur.loc[:20, "x"] = np.inf
+    report = analyze_numeric_column("x", ref, cur, DriftConfig(), alpha_effective=0.05)
+    wasserstein = next(t for t in report.tests if t.name == "wasserstein_norm")
+    assert np.isfinite(wasserstein.statistic)
+    assert report.severity == "ok"

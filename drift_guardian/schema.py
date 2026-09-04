@@ -40,6 +40,23 @@ def validate_schema(reference: pd.DataFrame, current: pd.DataFrame) -> list[Issu
     if issues:
         return issues
 
+    for where, frame in (("эталоне", reference), ("текущем батче", current)):
+        duplicates = frame.columns[frame.columns.duplicated()].unique().tolist()
+        if duplicates:
+            issues.append(
+                Issue(
+                    check="duplicate_columns",
+                    severity="critical",
+                    column=str(duplicates[0]),
+                    message=(
+                        f"В {where} дублируются имена колонок: {duplicates[:5]} — "
+                        "анализ невозможен, переименуйте колонки."
+                    ),
+                )
+            )
+    if issues:
+        return issues
+
     for col in reference.columns:
         if col not in current.columns:
             issues.append(

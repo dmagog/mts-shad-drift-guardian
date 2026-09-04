@@ -1,15 +1,40 @@
-"""Data Quality: пропуски, дубликаты, диапазоны, допустимые категории, константы.
+"""Data Quality: пропуски, дубликаты, диапазоны, допустимые категории, константы, бесконечности.
 
 Границы диапазонов и множества допустимых категорий берутся из контракта данных
 (``DriftConfig.value_bounds`` / ``allowed_categories``), а если он не задан —
 выводятся из эталона: [min, max] и множество наблюдавшихся категорий.
+
+Проверки долей (пропуски, дубликаты, значения вне диапазона, новые категории)
+работают по двухключевому правилу: доля должна превысить порог **и** статистически
+отличаться от нуля (нижняя граница 95 %-го интервала > 0). Иначе на батче в десять
+строк одна пустая ячейка давала бы «+12 п.п. пропусков».
 """
 from __future__ import annotations
 
+import math
+
+import numpy as np
 import pandas as pd
 
 from .config import DriftConfig
 from .contracts import Issue, grade
+
+_Z = 1.96
+
+
+def _confident_delta(p_ref: float, n_ref: int, p_cur: float, n_cur: int) -> bool:
+    """Прирост доли статистически отличим от нуля (нормальное приближение)."""
+    if n_ref <= 0 or n_cur <= 0:
+        return False
+    se = math.sqrt(p_ref * (1 - p_ref) / n_ref + p_cur * (1 - p_cur) / n_cur)
+    return (p_cur - p_ref) - _Z * se > 0
+
+
+def _confident_share(share: float, n: int) -> bool:
+    """Доля статистически отличима от нуля."""
+    if n <= 0 or share <= 0:
+        return False
+    return share - _Z * math.sqrt(share * (1 - share) / n) > 0
 
 
 def check_data_quality(
@@ -31,7 +56,7 @@ def check_data_quality(
         cur_na = float(current[col].isna().mean())
         delta = cur_na - ref_na
         severity = grade(delta, th.missing_delta_warning, th.missing_delta_critical)
-        if severity != "ok":
+        if severity != "ok" and _confident_delta(ref_na, len(reference), cur_na, len(current)):
             issues.append(
                 Issue(
                     check="missing_values",
@@ -50,7 +75,7 @@ def check_data_quality(
     cur_dup = float(current.duplicated().mean())
     dup_delta = cur_dup - ref_dup
     severity = grade(dup_delta, th.duplicates_delta_warning, th.duplicates_delta_critical)
-    if severity != "ok":
+    if severity != "ok" and _confident_delta(ref_dup, len(reference), cur_dup, len(current)):
         issues.append(
             Issue(
                 check="duplicates",
@@ -63,9 +88,26 @@ def check_data_quality(
             )
         )
 
-    # 3. Числовые значения вне допустимого диапазона (контракт или [min, max] эталона).
+    # 3. Бесконечности — ошибка в данных, а не значение.
     for col in numeric_cols:
-        cur_clean = pd.to_numeric(current[col], errors="coerce").dropna()
+        values = pd.to_numeric(current[col], errors="coerce").to_numpy(dtype=float)
+        n_inf = int(np.isinf(values).sum())
+        if n_inf:
+            share = n_inf / len(values)
+            issues.append(
+                Issue(
+                    check="non_finite",
+                    severity="critical" if share >= 0.05 else "warning",
+                    column=col,
+                    value=round(share, 4),
+                    message=f"В '{col}' {n_inf} бесконечных значений ({share:.1%}) — ошибка в данных.",
+                )
+            )
+
+    # 4. Числовые значения вне допустимого диапазона (контракт или [min, max] эталона).
+    for col in numeric_cols:
+        cur_clean = pd.to_numeric(current[col], errors="coerce")
+        cur_clean = cur_clean[np.isfinite(cur_clean)]
         if cur_clean.empty:
             continue
         if col in bounds:
@@ -79,7 +121,7 @@ def check_data_quality(
             source = "эталона"
         share = float(((cur_clean < lo) | (cur_clean > hi)).mean())
         severity = grade(share, th.out_of_range_warning, th.out_of_range_critical)
-        if severity != "ok":
+        if severity != "ok" and _confident_share(share, len(cur_clean)):
             issues.append(
                 Issue(
                     check="out_of_range",
@@ -92,7 +134,7 @@ def check_data_quality(
                 )
             )
 
-    # 4. Категории вне допустимого множества (контракт или категории эталона).
+    # 5. Категории вне допустимого множества (контракт или категории эталона).
     for col in categorical_cols:
         cur_clean = current[col].dropna()
         if cur_clean.empty:
@@ -106,8 +148,17 @@ def check_data_quality(
         is_new = ~cur_clean.isin(known)
         share = float(is_new.mean())
         severity = grade(share, th.new_category_warning, th.new_category_critical)
-        if severity != "ok":
-            new_values = sorted(map(str, set(cur_clean[is_new].unique())))[:5]
+        if severity != "ok" and _confident_share(share, len(cur_clean)):
+            new_set = set(cur_clean[is_new].unique())
+            new_values = sorted(map(str, new_set))[:5]
+            known_norm = {str(k).strip().casefold() for k in known}
+            near = sum(str(v).strip().casefold() in known_norm for v in new_set)
+            hint = ""
+            if near == len(new_set):
+                hint = (
+                    " Отличаются от известных только пробелами или регистром — "
+                    "скорее всего, изменился пайплайн подготовки данных."
+                )
             issues.append(
                 Issue(
                     check="new_categories",
@@ -116,12 +167,12 @@ def check_data_quality(
                     value=round(share, 4),
                     message=(
                         f"В '{col}' появились категории, не предусмотренные {source}: "
-                        f"{new_values} — {share:.1%} строк текущего батча."
+                        f"{new_values} — {share:.1%} строк текущего батча.{hint}"
                     ),
                 )
             )
 
-    # 5. Колонка стала константной, хотя в эталоне была вариативной.
+    # 6. Колонка стала константной, хотя в эталоне была вариативной.
     for col in [*numeric_cols, *categorical_cols]:
         if (
             reference[col].nunique(dropna=True) > 1

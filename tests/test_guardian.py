@@ -107,3 +107,52 @@ def test_declared_bounds_and_categories_from_contract():
     assert checks["out_of_range"]["severity"] == "critical"
     assert "контракта" in checks["out_of_range"]["message"]
     assert checks["new_categories"]["severity"] == "critical"
+
+
+def test_identical_frames_are_not_flagged_as_drift():
+    """Строки-двойники не должны «подсказывать» adversarial-модели метку."""
+    reference, _ = make_demo("no_drift", 3000, 1000, seed=30)
+    report = analyze(reference, reference, DriftConfig(target_column="target"))
+    assert report["overall_severity"] == "ok"
+    assert report["adversarial"]["overlap_share"] == 1.0
+    assert "идентичны" in report["adversarial"]["note"]
+
+
+def test_partial_overlap_is_excluded_from_adversarial():
+    reference, fresh = make_demo("no_drift", 4000, 1000, seed=31)
+    current = pd.concat([reference.sample(3000, random_state=1), fresh], ignore_index=True)
+    report = analyze(reference, current, DriftConfig(target_column="target"))
+    assert 0.7 <= report["adversarial"]["overlap_share"] <= 0.8
+    assert report["adversarial"]["roc_auc"] < 0.6
+    assert report["overall_severity"] == "ok"
+
+
+def test_duplicate_column_names_abort_analysis():
+    rng = np.random.default_rng(32)
+    ref = _make(rng, 300)
+    cur = _make(rng, 300)
+    ref.columns = ["age", "age", "city"]
+    cur.columns = ["age", "age", "city"]
+    report = analyze(ref, cur)
+    assert report["overall_severity"] == "critical"
+    assert any(i["check"] == "duplicate_columns" for i in report["schema"])
+    assert report["columns"] == []
+
+
+def test_tiny_batch_is_reported_as_insufficient():
+    reference, current = make_demo("no_drift", 5000, 200, seed=33)
+    report = analyze(reference, current.head(10), DriftConfig(target_column="target"))
+    assert report["overall_severity"] == "warning"
+    assert report["meta"]["insufficient_data"] is True
+    assert "слишком мал" in report["recommendation"]
+    assert report["alerts"][0].startswith("ВНИМАНИЕ: батч содержит 10 строк")
+    # шум долей на десяти строках не должен превращаться в замечания к качеству
+    assert all(i["severity"] == "ok" for i in report["data_quality"])
+
+
+def test_small_batch_ok_mentions_low_sensitivity():
+    reference, current = make_demo("no_drift", 5000, 200, seed=34)
+    report = analyze(reference, current.head(30), DriftConfig(target_column="target"))
+    assert report["overall_severity"] == "ok"
+    assert report["meta"]["insufficient_data"] is False
+    assert "мал" in report["recommendation"]

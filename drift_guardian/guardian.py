@@ -60,7 +60,10 @@ class DriftGuardian:
         started_at = datetime.now(timezone.utc)
 
         schema_issues = validate_schema(reference, current)
-        if any(i.check in ("empty_reference", "empty_current") for i in schema_issues):
+        if any(
+            i.check in ("empty_reference", "empty_current", "duplicate_columns")
+            for i in schema_issues
+        ):
             return self._aborted_report(schema_issues, reference, current, started_at)
 
         numeric_cols, categorical_cols, skipped = split_columns(reference, current, cfg)
@@ -150,8 +153,32 @@ class DriftGuardian:
         feature_worst = worst(
             [*(i.severity for i in quality_issues), *(c.severity for c in column_reports)]
         )
-        if target_drift and target_drift.severity == "critical" and feature_worst != "critical":
+        # Слишком маленький батч: статистика невозможна, честно говорим об этом,
+        # а не рапортуем «ok» по пропущенным тестам.
+        insufficient = len(current) < cfg.min_samples or bool(
+            column_reports and all(c.tests and c.tests[0].name == "skipped" for c in column_reports)
+        )
+        notes: list[str] = []
+        if adversarial and adversarial.note:
+            notes.append(adversarial.note)
+        if insufficient:
+            overall = worst([overall, "warning"])
+            recommendation = (
+                f"Батч слишком мал для статистических выводов: {len(current)} строк при минимуме "
+                f"{cfg.min_samples}. Накопите больше данных или укрупните период."
+            )
+            alerts.insert(
+                0,
+                f"ВНИМАНИЕ: батч содержит {len(current)} строк — меньше минимума {cfg.min_samples}; "
+                "статистические тесты пропущены.",
+            )
+        elif target_drift and target_drift.severity == "critical" and feature_worst != "critical":
             recommendation = _CONCEPT_DRIFT_RECOMMENDATION
+        elif overall == "ok" and underpowered:
+            recommendation = (
+                f"Дрейф не обнаружен, но батч мал ({len(current)} строк): чувствительность PSI и JS "
+                "снижена, пороги подняты до шумового уровня."
+            )
         else:
             recommendation = _RECOMMENDATIONS[overall]
 
@@ -165,6 +192,8 @@ class DriftGuardian:
             "skipped_reasons": skipped,
             "underpowered_columns": underpowered,
             "excluded_columns": sorted(excluded),
+            "insufficient_data": insufficient,
+            "notes": notes,
             "target_column": cfg.target_column,
             "prediction_column": cfg.prediction_column,
             "alpha_effective": alpha_effective,

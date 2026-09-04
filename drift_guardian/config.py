@@ -74,9 +74,9 @@ class DriftConfig:
     adversarial_enabled: bool = True
     # Сабсэмплинг для adversarial-валидации (скорость на больших данных).
     adversarial_max_rows: int = 50_000
-    # Потоки LightGBM. На небольших данных (особенно на macOS) многопоточность
-    # замедляет обучение в разы из-за накладных расходов, поэтому по умолчанию 1.
-    adversarial_n_jobs: int = 1
+    # Потоки LightGBM: None — автоматически (1 поток на небольших данных, где
+    # многопоточность только мешает; 4 потока, когда строк × колонок ≥ 1 млн).
+    adversarial_n_jobs: int | None = None
     random_state: int = 42
     # Явное переопределение типов колонок (имеет приоритет над эвристикой).
     numeric_columns: list[str] | None = None

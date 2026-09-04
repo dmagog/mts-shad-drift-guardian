@@ -69,3 +69,12 @@ def test_cli_timeline_mode(tmp_path):
     timeline = json.loads(json_path.read_text(encoding="utf-8"))
     assert [p["label"] for p in timeline["periods"]] == ["2026-01", "2026-02", "2026-03"]
     assert "Статус по периодам" in html_path.read_text(encoding="utf-8")
+
+
+def test_load_csv_in_cp1251(tmp_path):
+    reference, _ = make_demo("no_drift", 200, 50, seed=9)
+    path = tmp_path / "cp1251.csv"
+    path.write_bytes(reference.to_csv(index=False).encode("cp1251"))
+    frame = load_table(path)
+    assert frame.shape == reference.shape
+    assert "наёмный" in set(frame["employment_type"])

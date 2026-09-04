@@ -65,7 +65,7 @@ def split_columns(
             categorical.append(col)
         elif ptypes.is_numeric_dtype(series):
             if ptypes.is_integer_dtype(series) and _looks_like_identifier(series, config):
-                skipped[col] = "похоже на идентификатор (почти все значения уникальны)"
+                skipped[col] = "почти все значения уникальны (идентификатор)"
             elif (
                 ptypes.is_integer_dtype(series)
                 and series.nunique(dropna=True) <= config.categorical_int_unique_limit
@@ -81,7 +81,7 @@ def split_columns(
             if _looks_like_datetime(series):
                 skipped[col] = "строки с датами — исключите или превратите в признаки"
             elif _looks_like_identifier(series, config):
-                skipped[col] = "похоже на идентификатор (почти все значения уникальны)"
+                skipped[col] = "почти все значения уникальны (идентификатор или свободный текст)"
             else:
                 categorical.append(col)
         else:

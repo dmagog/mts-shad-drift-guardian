@@ -45,7 +45,8 @@ def _embed(text: str, marker: str, filename: str, demote: int = 1) -> str:
 
 def embed_experiments(text: str) -> str:
     text = _embed(text, "<!-- EXPERIMENTS -->", "experiments.md")
-    return _embed(text, "<!-- BENCHMARK -->", "benchmark_evidently.md")
+    text = _embed(text, "<!-- BENCHMARK -->", "benchmark_evidently.md")
+    return _embed(text, "<!-- EDGE_CASES -->", "edge_cases.md")
 
 
 def main() -> None:

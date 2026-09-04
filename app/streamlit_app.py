@@ -25,7 +25,7 @@ from drift_guardian import (  # noqa: E402
     DriftConfig,
     Thresholds,
     analyze,
-    run_timeline,
+    run_timeline_from_frame,
     split_by_period,
 )
 from drift_guardian.demo import SCENARIOS, make_demo, make_timeline_demo  # noqa: E402
@@ -34,6 +34,7 @@ from drift_guardian.html_report import (  # noqa: E402
     render_timeline_html,
     report_to_json,
 )
+from drift_guardian.io import read_csv_any  # noqa: E402
 from drift_guardian.narrative import (  # noqa: E402
     CHECK_LABELS,
     CONCEPT_DRIFT_NOTE,
@@ -100,7 +101,7 @@ def read_table(data: bytes, name: str) -> pd.DataFrame:
     buffer = io.BytesIO(data)
     if name.lower().endswith((".parquet", ".pq")):
         return pd.read_parquet(buffer)
-    return pd.read_csv(buffer)
+    return read_csv_any(buffer)
 
 
 @st.cache_data(show_spinner="Считаем метрики дрейфа…")
@@ -111,8 +112,9 @@ def run_analysis(reference: pd.DataFrame, current: pd.DataFrame, config_dict: di
 @st.cache_data(show_spinner="Считаем метрики по периодам…")
 def run_stream(reference: pd.DataFrame, stream: pd.DataFrame, date_column: str, freq: str,
                config_dict: dict) -> dict:
-    return run_timeline(reference, split_by_period(stream, date_column, freq),
-                        DriftConfig.from_dict(config_dict))
+    return run_timeline_from_frame(
+        reference, stream, date_column, freq, DriftConfig.from_dict(config_dict)
+    )
 
 
 def distribution_figure(kind: str, reference: pd.Series, current: pd.Series, title: str | None,
@@ -205,10 +207,12 @@ def sidebar() -> dict:
             if ref_file is not None and stream_file is not None:
                 reference = read_table(ref_file.getvalue(), ref_file.name)
                 stream = read_table(stream_file.getvalue(), stream_file.name)
-                columns = [str(c) for c in stream.columns]
-                guess = next((c for c in columns if "date" in c.lower() or c.lower() == "dt"
-                              or "time" in c.lower()), columns[0])
-                date_column = st.sidebar.selectbox("Колонка даты", columns, index=columns.index(guess))
+                columns = list(stream.columns)
+                guess = next((c for c in columns if "date" in str(c).lower() or str(c).lower() == "dt"
+                              or "time" in str(c).lower()), columns[0])
+                date_column = st.sidebar.selectbox(
+                    "Колонка даты", columns, index=columns.index(guess), format_func=str
+                )
                 freq = st.sidebar.selectbox(
                     "Период", list(FREQ_LABELS), index=2, format_func=lambda f: FREQ_LABELS[f]
                 )
@@ -218,13 +222,15 @@ def sidebar() -> dict:
     exclude_columns: list[str] = []
     if reference is not None:
         st.sidebar.markdown("### Роли колонок")
-        columns = [str(c) for c in reference.columns]
+        columns = list(reference.columns)  # исходные объекты: имена колонок бывают и не строками
         default_index = columns.index("target") + 1 if is_demo and "target" in columns else 0
-        chosen = st.sidebar.selectbox("Целевая переменная", [NO_TARGET, *columns], index=default_index)
-        target_column = None if chosen == NO_TARGET else chosen
+        chosen = st.sidebar.selectbox(
+            "Целевая переменная", [NO_TARGET, *columns], index=default_index, format_func=str
+        )
+        target_column = None if isinstance(chosen, str) and chosen == NO_TARGET else chosen
         exclude_columns = st.sidebar.multiselect(
             "Исключить из анализа", [c for c in columns if c != target_column],
-            placeholder="идентификаторы, даты…",
+            placeholder="идентификаторы, даты…", format_func=str,
         )
 
     with st.sidebar.expander("Пороги и параметры"):
@@ -344,6 +350,14 @@ def render_issues(report: dict) -> None:
     if alerts:
         ui.section("Замечания к данным", f"{len(alerts)}")
         ui.issue_list([(i["severity"], i["message"], CHECK_LABELS.get(i["check"], i["check"])) for i in alerts])
+    meta = report["meta"]
+    for text in meta.get("notes", []):
+        ui.note(text)
+    if meta.get("underpowered_columns") and not meta.get("insufficient_data"):
+        ui.note(
+            "Батч мал для надёжной оценки PSI/JS по колонкам: "
+            f"{', '.join(map(str, meta['underpowered_columns']))}. Порог warning поднят до шумового уровня."
+        )
     if infos:
         ui.note(" ".join(i["message"] for i in infos))
 
@@ -409,6 +423,8 @@ def render_adversarial_tab(report: dict, key_prefix: str) -> None:
         "чем выше, тем сильнее изменилась совместная структура признаков.",
         [(" бэкенд", adversarial["backend"]), (" строк использовано", fmt_int(adversarial["n_rows_used"]))],
     )
+    if adversarial.get("note"):
+        ui.note(adversarial["note"])
     if adversarial["top_features"]:
         st.plotly_chart(feature_importance_figure(adversarial["top_features"], title=None),
                         width="stretch", theme=None, key=f"{key_prefix}-importance")
@@ -506,6 +522,11 @@ def main() -> None:
     if not periods:
         ui.note("В потоке не нашлось ни одного периода с данными.")
         return
+    if timeline["meta"].get("dropped_rows"):
+        ui.note(
+            f"{fmt_int(timeline['meta']['dropped_rows'])} из {fmt_int(timeline['meta']['total_rows'])} "
+            "строк потока без распознаваемой даты пропущены."
+        )
     last = periods[-1]
     first_bad = next((p["label"] for p in periods if p["overall_severity"] != "ok"), "нет")
     ui.hero(

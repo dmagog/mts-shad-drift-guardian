@@ -35,6 +35,7 @@ class PeriodSummary:
     alerts: list[str] = field(default_factory=list)
     psi_by_column: dict[str, float] = field(default_factory=dict)
     severity_by_column: dict[str, Severity] = field(default_factory=dict)
+    insufficient: bool = False
 
 
 def summarize_period(label: str, report: DriftReport, rows: int) -> PeriodSummary:
@@ -56,17 +57,26 @@ def summarize_period(label: str, report: DriftReport, rows: int) -> PeriodSummar
         alerts=list(report.alerts),
         psi_by_column=psi,
         severity_by_column=severity,
+        insufficient=bool(report.meta.get("insufficient_data", False)),
     )
 
 
 def split_by_period(
-    frame: pd.DataFrame, date_column: str, freq: str = "M"
+    frame: pd.DataFrame, date_column: str, freq: str = "M", stats: dict | None = None
 ) -> list[tuple[str, pd.DataFrame]]:
-    """Режет поток на батчи по календарному периоду (D, W, M, Q); колонка даты убирается."""
+    """Режет поток на батчи по календарному периоду (D, W, M, Q); колонка даты убирается.
+
+    Строки с нераспознанной датой пропускаются; их число попадает в ``stats``
+    (``dropped_rows``, ``total_rows``), если словарь передан.
+    """
     if date_column not in frame.columns:
         raise KeyError(f"Колонка даты '{date_column}' не найдена")
-    dates = pd.to_datetime(frame[date_column], errors="coerce")
+    # format="mixed": каждое значение разбирается отдельно, мусор становится NaT без предупреждений.
+    dates = pd.to_datetime(frame[date_column], errors="coerce", format="mixed")
     mask = dates.notna()
+    if stats is not None:
+        stats["dropped_rows"] = int((~mask).sum())
+        stats["total_rows"] = int(len(frame))
     if not mask.any():
         raise ValueError(f"В колонке '{date_column}' нет распознаваемых дат")
     valid = frame.loc[mask].drop(columns=[date_column])
@@ -109,4 +119,7 @@ def run_timeline_from_frame(
     config: DriftConfig | None = None,
 ) -> dict:
     """Удобная обёртка: поток с колонкой даты → сводка по периодам."""
-    return run_timeline(reference, split_by_period(stream, date_column, freq), config)
+    stats: dict = {}
+    timeline = run_timeline(reference, split_by_period(stream, date_column, freq, stats), config)
+    timeline["meta"].update(stats)
+    return timeline

@@ -300,6 +300,7 @@
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
             "n_categories": 4,
+            "n_categories_total": 4,
             "noise_floor": 0.0025,
             "noise_quantile": 0.99,
             "ci95": [
@@ -350,6 +351,7 @@
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
             "n_categories": 4,
+            "n_categories_total": 4,
             "noise_floor": 0.0037,
             "noise_quantile": 0.99,
             "ci95": [
@@ -400,6 +402,7 @@
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
             "n_categories": 4,
+            "n_categories_total": 4,
             "noise_floor": 0.003,
             "noise_quantile": 0.99,
             "ci95": [
@@ -450,6 +453,7 @@
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
             "n_categories": 4,
+            "n_categories_total": 4,
             "noise_floor": 0.0023,
             "noise_quantile": 0.99,
             "ci95": [
@@ -516,10 +520,12 @@
         "feature": "region",
         "importance": 0.006
       }
-    ]
+    ],
+    "overlap_share": 0.0,
+    "note": ""
   },
   "meta": {
-    "generated_at": "2026-09-04T17:38:26+00:00",
+    "generated_at": "2026-09-04T17:56:29+00:00",
     "reference_rows": 20000,
     "current_rows": 5000,
     "numeric_columns": [
@@ -538,6 +544,8 @@
     "skipped_reasons": {},
     "underpowered_columns": [],
     "excluded_columns": [],
+    "insufficient_data": false,
+    "notes": [],
     "target_column": "target",
     "prediction_column": null,
     "alpha_effective": 0.00625,
@@ -573,7 +581,7 @@
       "identifier_min_rows": 100,
       "adversarial_enabled": true,
       "adversarial_max_rows": 50000,
-      "adversarial_n_jobs": 1,
+      "adversarial_n_jobs": null,
       "random_state": 42,
       "numeric_columns": null,
       "categorical_columns": null,
@@ -607,6 +615,7 @@
         "threshold": "warning >= 0.1, critical >= 0.2",
         "details": {
           "n_categories": 2,
+          "n_categories_total": 2,
           "noise_floor": 0.0017,
           "noise_quantile": 0.99,
           "ci95": [

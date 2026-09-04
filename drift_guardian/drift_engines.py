@@ -136,6 +136,11 @@ def bootstrap_noise(
     }
 
 
+def _finite(series: pd.Series) -> np.ndarray:
+    values = pd.to_numeric(series, errors="coerce").to_numpy(dtype=float)
+    return values[np.isfinite(values)]
+
+
 def _skipped(column: str, kind: str, config: DriftConfig) -> ColumnReport:
     skipped = TestResult(
         name="skipped",
@@ -210,8 +215,9 @@ def analyze_numeric_column(
 ) -> ColumnReport:
     """Полный набор тестов дрейфа для числовой колонки."""
     th = config.thresholds
-    ref = pd.to_numeric(reference[column], errors="coerce").dropna().to_numpy(dtype=float)
-    cur = pd.to_numeric(current[column], errors="coerce").dropna().to_numpy(dtype=float)
+    # Бесконечности трактуются как пропуски: модуль качества данных сообщает о них отдельно.
+    ref = _finite(reference[column])
+    cur = _finite(current[column])
     if len(ref) < config.min_samples or len(cur) < config.min_samples:
         return _skipped(column, "numeric", config)
 
@@ -269,7 +275,11 @@ def analyze_categorical_column(
         return _skipped(column, "categorical", config)
 
     ref_counts, cur_counts, cats = category_frequencies(ref, cur, config.max_categories)
-    tests = _effect_tests(ref_counts, cur_counts, config, {"n_categories": len(cats)})
+    n_total = len(set(ref.unique()) | set(cur.unique()))
+    tests = _effect_tests(
+        ref_counts, cur_counts, config,
+        {"n_categories": len(cats), "n_categories_total": n_total},
+    )
 
     # Двухключевое правило: хи-квадрат срабатывает только при значимости И заметном эффекте.
     effect_severity = worst(t.severity for t in tests)

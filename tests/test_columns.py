@@ -29,7 +29,7 @@ def test_identifiers_and_dates_are_skipped_with_reasons():
     assert numeric == ["age"]
     assert set(categorical) == {"num_children", "is_active", "city"}
     assert set(skipped) == {"customer_id", "order_uuid", "signup_date", "event_ts"}
-    assert "идентификатор" in skipped["customer_id"]
+    assert "уникальны" in skipped["customer_id"]
     assert "дат" in skipped["signup_date"]
 
 

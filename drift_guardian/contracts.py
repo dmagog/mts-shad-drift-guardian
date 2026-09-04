@@ -71,6 +71,9 @@ class AdversarialReport:
     backend: str
     n_rows_used: int
     top_features: list[dict[str, Any]] = field(default_factory=list)
+    # Доля строк батча, точно совпадающих со строками эталона (исключаются из обучения).
+    overlap_share: float = 0.0
+    note: str = ""
 
 
 @dataclass
