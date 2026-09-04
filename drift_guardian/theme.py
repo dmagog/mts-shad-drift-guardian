@@ -22,9 +22,9 @@ REPO_URL = "https://github.com/dmagog/mts-shad-drift-guardian"
 _MARK_BODY = (
     '<rect x="1" y="1" width="30" height="30" rx="8" fill="#fcfcfb" stroke="#e1e0d9"/>'
     '<path d="M5 23 C 9 23, 10 8, 14 8 S 19 23, 23 23" fill="none" stroke="#2a78d6" '
-    'stroke-width="2.6" stroke-linecap="round"/>'
+    'stroke-width="3" stroke-linecap="round"/>'
     '<path d="M9 23 C 13 23, 14 11, 18 11 S 23 23, 27 23" fill="none" stroke="#eb6834" '
-    'stroke-width="2.6" stroke-linecap="round" opacity="0.92"/>'
+    'stroke-width="3" stroke-linecap="round" opacity="0.92"/>'
     '<line x1="4" y1="25.5" x2="28" y2="25.5" stroke="#c3c2b7" stroke-width="1.4" stroke-linecap="round"/>'
 )
 
@@ -44,9 +44,9 @@ COMPONENT_CSS = """
 .dg-wordmark span{color:var(--dg-muted);font-weight:500;letter-spacing:0}
 .dg-page-title{font-size:15px;font-weight:650;color:var(--dg-ink);letter-spacing:-.005em}
 .dg-meta{color:var(--dg-muted);font-size:12.5px}
-.dg-brand{display:flex;align-items:center;gap:10px;margin:.1rem 0 1rem}
-.dg-brand-name{font-weight:700;font-size:15px;letter-spacing:.01em;color:var(--dg-ink);line-height:1.2}
-.dg-brand-sub{color:var(--dg-muted);font-size:12px;line-height:1.3}
+.dg-brand{display:flex;align-items:center;gap:12px;margin:.1rem 0 1.1rem}
+.dg-brand-name{font-weight:700;font-size:17px;letter-spacing:.005em;color:var(--dg-ink);line-height:1.15}
+.dg-brand-sub{color:var(--dg-muted);font-size:12.5px;line-height:1.3;margin-top:2px}
 .dg-footer{border-top:1px solid var(--dg-line);margin-top:1.4rem;padding-top:.8rem;color:var(--dg-muted);font-size:12px;line-height:1.5}
 .dg-footer b{color:var(--dg-ink2);font-weight:600}
 .dg-footer a{color:var(--dg-accent);text-decoration:none}
@@ -96,7 +96,7 @@ def chip(severity: str, large: bool = False) -> str:
 def topbar(subtitle: str, meta: str, wordmark: bool = True) -> str:
     """Шапка страницы: знак и название (HTML-отчёт) или заголовок раздела (дашборд, где бренд в панели)."""
     if wordmark:
-        left = f'<div class="dg-wordmark">{mark(24)}Data Drift Guardian<span>{escape(subtitle)}</span></div>'
+        left = f'<div class="dg-wordmark">{mark(28)}Data Drift Guardian<span>{escape(subtitle)}</span></div>'
     else:
         left = f'<div class="dg-page-title">{escape(subtitle)}</div>'
     return f'<div class="dg-topbar">{left}<div class="dg-meta">{escape(meta)}</div></div>'
@@ -105,7 +105,7 @@ def topbar(subtitle: str, meta: str, wordmark: bool = True) -> str:
 def brand(subtitle: str = "мониторинг дрейфа данных") -> str:
     """Бренд-блок для боковой панели: знак, название, подпись."""
     return (
-        f'<div class="dg-brand">{mark(30)}<div><div class="dg-brand-name">Data Drift Guardian</div>'
+        f'<div class="dg-brand">{mark(42)}<div><div class="dg-brand-name">Data Drift Guardian</div>'
         f'<div class="dg-brand-sub">{escape(subtitle)}</div></div></div>'
     )
 
@@ -114,7 +114,7 @@ def footer() -> str:
     """Подвал: автор, проект, ссылка на репозиторий."""
     return (
         f'<div class="dg-footer"><b>Автор — {escape(AUTHOR)}</b><br>{escape(PROJECT_LINE)}<br>'
-        f'<a href="{REPO_URL}" target="_blank" rel="noopener">github.com/dmagog/mts-shad-drift-guardian</a></div>'
+        f'<a href="{REPO_URL}" target="_blank" rel="noopener">Источник</a></div>'
     )
 
 
