@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.venv/
+
+# Данные и артефакты (датасеты — ссылками/скриптом генерации, не файлами)
+data/
+reports_out/
+
+# Системное
+.DS_Store
+.ipynb_checkpoints/
