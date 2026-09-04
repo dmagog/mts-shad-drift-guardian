@@ -54,7 +54,7 @@ def test_summary_frame_and_styling():
     report = analyze(ref, cur)
     frame = column_summary_frame(report)
     assert len(frame) == len(report["columns"])
-    assert frame.iloc[0]["статус"].endswith("critical")  # худшие сверху
+    assert frame.iloc[0]["статус"] == "критично"  # худшие сверху
     style_severity(frame).to_html()  # не падает
 
 

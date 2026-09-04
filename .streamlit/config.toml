@@ -1,10 +1,21 @@
-# Светлая тема зафиксирована: палитра графиков (Plotly) подобрана под светлую поверхность.
+# Визуальная система дашборда: тёплая светлая поверхность, тонкие линии, системный шрифт,
+# один акцентный цвет. Статусы — только зарезервированными цветами и всегда с подписью.
 [theme]
 base = "light"
 primaryColor = "#2a78d6"
 backgroundColor = "#fcfcfb"
-secondaryBackgroundColor = "#f0efec"
+secondaryBackgroundColor = "#f3f2ee"
 textColor = "#0b0b0b"
+font = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+baseRadius = "8px"
+borderColor = "#e1e0d9"
+showWidgetBorder = true
+
+[theme.sidebar]
+backgroundColor = "#f6f5f1"
+
+[client]
+toolbarMode = "minimal"
 
 [server]
 headless = true

@@ -15,8 +15,9 @@ def _run_app() -> AppTest:
 def test_dashboard_renders_default_scenario():
     app = _run_app()
     assert not app.exception, [e.value for e in app.exception]
-    assert app.title[0].value.endswith("Data Drift Guardian")
-    assert app.error, "сценарий mixed должен давать красный баннер"
+    markdown = " ".join(m.value for m in app.markdown)
+    assert "Data Drift Guardian" in markdown
+    assert "Критический дрейф" in markdown, "сценарий mixed должен давать критический вердикт"
     assert len(app.dataframe) >= 1
 
 
@@ -24,12 +25,13 @@ def test_dashboard_no_drift_scenario_is_green():
     app = _run_app()
     app.sidebar.selectbox[0].set_value("no_drift").run()
     assert not app.exception, [e.value for e in app.exception]
-    assert app.success, "сценарий no_drift должен давать зелёный баннер"
+    markdown = " ".join(m.value for m in app.markdown)
+    assert "Дрейф не обнаружен" in markdown, "сценарий no_drift должен давать вердикт «в норме»"
 
 
 def test_dashboard_timeline_mode_runs():
     app = _run_app()
     app.sidebar.radio[0].set_value("Временной ряд").run()
     assert not app.exception, [e.value for e in app.exception]
-    assert any("Динамика по периодам" in s.value for s in app.subheader)
+    assert any("Динамика по периодам" in m.value for m in app.markdown)
     assert len(app.get("plotly_chart")) >= 3  # статусы, PSI по периодам, детализация

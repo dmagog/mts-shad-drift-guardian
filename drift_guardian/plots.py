@@ -2,8 +2,8 @@
 
 Палитра: две серии «эталон / текущий батч» — синий и оранжевый в фиксированном
 порядке (пара проходит проверку на различимость при дальтонизме). Статусы —
-зарезервированные цвета ok / warning / critical, всегда вместе с иконкой
-и подписью, никогда цветом в одиночку.
+зарезервированные цвета ok / warning / critical, всегда вместе со словом
+(«в норме», «внимание», «критично»), никогда цветом в одиночку.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ SERIES_REFERENCE = "#2a78d6"
 SERIES_CURRENT = "#eb6834"
 STATUS_COLORS = {"ok": "#0ca30c", "warning": "#fab219", "critical": "#d03b3b"}
 STATUS_TINTS = {"ok": "#e8f6e8", "warning": "#fff4d6", "critical": "#fbe4e4"}
-STATUS_LABELS = {"ok": "✅ ok", "warning": "⚠️ warning", "critical": "🛑 critical"}
+STATUS_LABELS = {"ok": "в норме", "warning": "внимание", "critical": "критично"}
 SEVERITY_RANK = {"critical": 0, "warning": 1, "ok": 2}
 
 _LAYOUT = dict(
@@ -143,11 +143,13 @@ def feature_importance_figure(
     return fig
 
 
-def _test_value(tests: list[dict], name: str, field: str = "statistic"):
+def _test_value(tests: list[dict], name: str, field: str = "statistic") -> float:
+    """Значение теста или NaN, если теста нет (в таблицах NaN отображается пустой ячейкой)."""
     for test in tests:
         if test["name"] == name:
-            return test.get(field)
-    return None
+            value = test.get(field)
+            return float("nan") if value is None else value
+    return float("nan")
 
 
 def column_summary_frame(report: dict) -> pd.DataFrame:
@@ -238,7 +240,7 @@ def timeline_psi_figure(
             marker=dict(size=8),
             hovertemplate="%{y:.3f}<extra>" + col + "</extra>",
         )
-    for level, label in ((psi_warning, "warning"), (psi_critical, "critical")):
+    for level, label in ((psi_warning, STATUS_LABELS["warning"]), (psi_critical, STATUS_LABELS["critical"])):
         fig.add_hline(
             y=level, line=dict(color="#898781", dash="dash", width=1),
             annotation_text=label, annotation_position="top left",
@@ -256,17 +258,21 @@ def timeline_severity_figure(timeline: dict, title: str | None = "Статус �
             x=periods,
             y=[_RANK_FOR_BAR[s] for s in severities],
             marker_color=[STATUS_COLORS[s] for s in severities],
-            text=[STATUS_LABELS[s] for s in severities],
-            textposition="outside",
-            cliponaxis=False,
-            customdata=[[p["n_critical"], p["n_warning"]] for p in timeline["periods"]],
-            hovertemplate="%{text}<br>критичных признаков: %{customdata[0]}, "
-                          "предупреждений: %{customdata[1]}<extra></extra>",
+            customdata=[
+                [STATUS_LABELS[s], p["n_critical"], p["n_warning"]]
+                for s, p in zip(severities, timeline["periods"], strict=True)
+            ],
+            hovertemplate="%{customdata[0]}<br>критичных признаков: %{customdata[1]}, "
+                          "предупреждений: %{customdata[2]}<extra></extra>",
         )
     )
     _apply_layout(fig, title, "период", "")
     fig.update_layout(showlegend=False, hovermode="closest", bargap=0.35)
-    fig.update_yaxes(tickvals=[1, 2, 3], ticktext=["ok", "warning", "critical"], range=[0, 3.7])
+    fig.update_yaxes(
+        tickvals=[1, 2, 3],
+        ticktext=[STATUS_LABELS["ok"], STATUS_LABELS["warning"], STATUS_LABELS["critical"]],
+        range=[0, 3.4],
+    )
     return fig
 
 
