@@ -45,7 +45,18 @@ from .plots import (
     timeline_psi_figure,
     timeline_severity_figure,
 )
-from .theme import COMPONENT_CSS, all_clear, chip, hero, issue_list, note, section, topbar
+from .theme import (
+    AUTHOR,
+    COMPONENT_CSS,
+    PROJECT_LINE,
+    all_clear,
+    chip,
+    hero,
+    issue_list,
+    note,
+    section,
+    topbar,
+)
 
 PAGE_CSS = """
 body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#0b0b0b;background:#f9f9f7;margin:0;padding:24px 32px;line-height:1.45}
@@ -145,8 +156,9 @@ def _figures_to_html(figures: list[go.Figure], plotlyjs: str, heights: list[int]
 
 
 def _footer(thresholds: dict, alpha_effective: float | None) -> str:
+    credit = f"Data Drift Guardian · {PROJECT_LINE} · автор — {AUTHOR}"
     if not thresholds:
-        return "Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС"
+        return credit
     alpha = f" (с поправкой {alpha_effective:.3g})" if alpha_effective else ""
     return (
         f"Пороги: PSI {thresholds['psi_warning']} / {thresholds['psi_critical']} · "
@@ -154,7 +166,7 @@ def _footer(thresholds: dict, alpha_effective: float | None) -> str:
         f"Вассерштейн/σ {thresholds['wasserstein_warning']} / {thresholds['wasserstein_critical']} · "
         f"α = {thresholds['alpha']}{alpha} · adversarial ROC-AUC "
         f"{thresholds['adversarial_auc_warning']} / {thresholds['adversarial_auc_critical']}."
-        "<br>Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС"
+        f"<br>{credit}"
     )
 
 

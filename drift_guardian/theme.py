@@ -14,12 +14,42 @@ from html import escape
 
 from .plots import STATUS_COLORS, STATUS_LABELS, STATUS_TINTS
 
+AUTHOR = "Георгий Мамарин"
+PROJECT_LINE = "Итоговый проект 4.0 Школы аналитиков данных МТС"
+REPO_URL = "https://github.com/dmagog/mts-shad-drift-guardian"
+
+# Знак проекта: эталонное распределение (синее) и сдвинутый батч (оранжевый) над осью.
+_MARK_BODY = (
+    '<rect x="1" y="1" width="30" height="30" rx="8" fill="#fcfcfb" stroke="#e1e0d9"/>'
+    '<path d="M5 23 C 9 23, 10 8, 14 8 S 19 23, 23 23" fill="none" stroke="#2a78d6" '
+    'stroke-width="2.6" stroke-linecap="round"/>'
+    '<path d="M9 23 C 13 23, 14 11, 18 11 S 23 23, 27 23" fill="none" stroke="#eb6834" '
+    'stroke-width="2.6" stroke-linecap="round" opacity="0.92"/>'
+    '<line x1="4" y1="25.5" x2="28" y2="25.5" stroke="#c3c2b7" stroke-width="1.4" stroke-linecap="round"/>'
+)
+
+
+def mark(size: int = 28) -> str:
+    """Инлайн-SVG знака проекта заданного размера."""
+    return (
+        f'<svg class="dg-mark" width="{size}" height="{size}" viewBox="0 0 32 32" '
+        f'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">{_MARK_BODY}</svg>'
+    )
+
+
 COMPONENT_CSS = """
 :root{--dg-ink:#0b0b0b;--dg-ink2:#52514e;--dg-muted:#898781;--dg-line:#e1e0d9;--dg-surface:#ffffff;--dg-page:#f9f9f7;--dg-accent:#2a78d6;--dg-track:#efeee9}
-.dg-topbar{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin:0 0 .8rem}
-.dg-wordmark{font-weight:700;font-size:15px;letter-spacing:.02em;color:var(--dg-ink)}
-.dg-wordmark span{color:var(--dg-muted);font-weight:500;margin-left:.55rem;letter-spacing:0}
+.dg-topbar{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:0 0 .8rem}
+.dg-wordmark{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:15px;letter-spacing:.02em;color:var(--dg-ink)}
+.dg-wordmark span{color:var(--dg-muted);font-weight:500;letter-spacing:0}
+.dg-page-title{font-size:15px;font-weight:650;color:var(--dg-ink);letter-spacing:-.005em}
 .dg-meta{color:var(--dg-muted);font-size:12.5px}
+.dg-brand{display:flex;align-items:center;gap:10px;margin:.1rem 0 1rem}
+.dg-brand-name{font-weight:700;font-size:15px;letter-spacing:.01em;color:var(--dg-ink);line-height:1.2}
+.dg-brand-sub{color:var(--dg-muted);font-size:12px;line-height:1.3}
+.dg-footer{border-top:1px solid var(--dg-line);margin-top:1.4rem;padding-top:.8rem;color:var(--dg-muted);font-size:12px;line-height:1.5}
+.dg-footer b{color:var(--dg-ink2);font-weight:600}
+.dg-footer a{color:var(--dg-accent);text-decoration:none}
 .dg-hero{border:1px solid var(--dg-line);border-left:6px solid var(--c);border-radius:10px;padding:18px 22px 16px;background:var(--dg-surface);margin:0 0 1.1rem}
 .dg-verdict{font-size:22px;font-weight:650;margin:0 0 4px;display:flex;align-items:center;gap:.7rem;letter-spacing:-.01em;flex-wrap:wrap}
 .dg-rec{font-size:15px;color:var(--dg-ink2);margin:0 0 12px;max-width:72ch}
@@ -63,11 +93,28 @@ def chip(severity: str, large: bool = False) -> str:
     return f'<span class="{cls}" {style_attr(severity)}>{STATUS_LABELS[severity]}</span>'
 
 
-def topbar(subtitle: str, meta: str) -> str:
+def topbar(subtitle: str, meta: str, wordmark: bool = True) -> str:
+    """Шапка страницы: знак и название (HTML-отчёт) или заголовок раздела (дашборд, где бренд в панели)."""
+    if wordmark:
+        left = f'<div class="dg-wordmark">{mark(24)}Data Drift Guardian<span>{escape(subtitle)}</span></div>'
+    else:
+        left = f'<div class="dg-page-title">{escape(subtitle)}</div>'
+    return f'<div class="dg-topbar">{left}<div class="dg-meta">{escape(meta)}</div></div>'
+
+
+def brand(subtitle: str = "мониторинг дрейфа данных") -> str:
+    """Бренд-блок для боковой панели: знак, название, подпись."""
     return (
-        '<div class="dg-topbar">'
-        f'<div class="dg-wordmark">Data Drift Guardian<span>{escape(subtitle)}</span></div>'
-        f'<div class="dg-meta">{escape(meta)}</div></div>'
+        f'<div class="dg-brand">{mark(30)}<div><div class="dg-brand-name">Data Drift Guardian</div>'
+        f'<div class="dg-brand-sub">{escape(subtitle)}</div></div></div>'
+    )
+
+
+def footer() -> str:
+    """Подвал: автор, проект, ссылка на репозиторий."""
+    return (
+        f'<div class="dg-footer"><b>Автор — {escape(AUTHOR)}</b><br>{escape(PROJECT_LINE)}<br>'
+        f'<a href="{REPO_URL}" target="_blank" rel="noopener">github.com/dmagog/mts-shad-drift-guardian</a></div>'
     )
 
 

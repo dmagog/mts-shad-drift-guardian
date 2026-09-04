@@ -65,7 +65,11 @@ from drift_guardian.plots import (  # noqa: E402
 )
 from drift_guardian.timeline import FREQ_LABELS  # noqa: E402
 
-st.set_page_config(page_title="Data Drift Guardian", page_icon="🛡️", layout="wide")
+st.set_page_config(
+    page_title="Data Drift Guardian",
+    page_icon=str(Path(__file__).resolve().parent / "assets" / "mark.svg"),
+    layout="wide",
+)
 ui.inject_css()
 
 SUMMARY_FORMATS = {
@@ -150,6 +154,7 @@ def display_summary(frame: pd.DataFrame) -> pd.DataFrame:
 
 def sidebar() -> dict:
     params = st.query_params  # deep-link: ?mode=stream&scenario=concept_drift
+    ui.brand()
     st.sidebar.markdown("### Режим")
     mode = st.sidebar.radio(
         "Режим", [MODE_PAIR, MODE_STREAM], horizontal=True, label_visibility="collapsed",
@@ -240,7 +245,7 @@ def sidebar() -> dict:
         thresholds=thresholds, bonferroni=bonferroni, adversarial_enabled=adversarial_on,
         sample_size_guard=guard, target_column=target_column, exclude_columns=exclude_columns or None,
     )
-    st.sidebar.caption("Итоговый проект 4.0 Школы аналитиков данных МТС")
+    ui.footer()
     return {
         "mode": mode, "reference": reference, "current": current, "stream": stream,
         "date_column": date_column, "freq": freq, "config": config, "label": label,
@@ -476,7 +481,7 @@ def main() -> None:
 
     if state["mode"] == MODE_PAIR:
         current = state["current"]
-        ui.topbar(state["label"] or "данные не выбраны", "")
+        ui.topbar("Сравнение двух батчей", state["label"] or "данные не выбраны")
         if reference is None or current is None:
             ui.empty_state("Нужны две выборки", [
                 "Выберите демо-сценарий в боковой панели, чтобы посмотреть, как это работает.",
@@ -489,7 +494,7 @@ def main() -> None:
         return
 
     stream = state["stream"]
-    ui.topbar(state["label"] or "данные не выбраны", "")
+    ui.topbar("Мониторинг во времени", state["label"] or "данные не выбраны")
     if reference is None or stream is None:
         ui.empty_state("Нужен эталон и поток", [
             "Выберите демо-поток в боковой панели.",

@@ -32,8 +32,17 @@ def _html(markup: str) -> None:
     st.markdown(markup, unsafe_allow_html=True)
 
 
-def topbar(subtitle: str, meta: str) -> None:
-    _html(theme.topbar(subtitle, meta))
+def topbar(title: str, meta: str) -> None:
+    """Шапка страницы дашборда: заголовок раздела слева, контекст данных справа."""
+    _html(theme.topbar(title, meta, wordmark=False))
+
+
+def brand() -> None:
+    st.sidebar.markdown(theme.brand(), unsafe_allow_html=True)
+
+
+def footer() -> None:
+    st.sidebar.markdown(theme.footer(), unsafe_allow_html=True)
 
 
 def hero(severity: str, headline: str, recommendation: str, facts: list[tuple[str, str]]) -> None:
