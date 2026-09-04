@@ -227,3 +227,18 @@ def test_segment_truncation_is_reported_and_target_segment_rejected():
     rejected = analyze(reference, current, DriftConfig(target_column="target", segment_column="target", adversarial_enabled=False))
     assert rejected["segments"] is None
     assert any(i["check"] == "segment_column_is_target" for i in rejected["schema"])
+
+
+def test_numeric_segment_labels_are_ordered_by_value():
+    import numpy as np
+    import pandas as pd
+
+    from drift_guardian import DriftConfig, analyze
+
+    rng = np.random.default_rng(3)
+    days = rng.choice([1, 2, 3, 4, 5, 6, 7], 6000, p=[0.2, 0.05, 0.15, 0.1, 0.3, 0.1, 0.1])
+    ref = pd.DataFrame({"x": rng.normal(0, 1, 6000), "day": days})
+    cur = pd.DataFrame({"x": rng.normal(0, 1, 3000), "day": days[:3000]})
+    report = analyze(ref, cur, DriftConfig(segment_column="day", adversarial_enabled=False))
+    labels = [s["label"] for s in report["segments"]]
+    assert labels == sorted(labels, key=float)

@@ -1,6 +1,7 @@
 """Тесты графиков, HTML-отчёта и JSON-экспорта."""
 import json
 
+import pandas as pd
 import plotly.graph_objects as go
 
 from drift_guardian import analyze
@@ -125,3 +126,31 @@ def test_segment_heatmap_and_html_section():
     assert list(segment_frame(report["segments"]).columns)[0] == "сегмент"
     html = render_html_report(report, ref, cur, plotlyjs="cdn")
     assert "По сегментам" in html
+
+
+def test_card_metric_falls_back_to_out_of_range_for_constant_reference():
+    import numpy as np
+
+    from drift_guardian import DriftConfig
+    from drift_guardian.narrative import card_metric, explain_column, issues_by_column
+
+    rng = np.random.default_rng(5)
+    ref = pd.DataFrame({"x": np.zeros(2000), "y": rng.normal(0, 1, 2000)})
+    cur = pd.DataFrame({"x": rng.uniform(1, 2, 800), "y": rng.normal(0, 1, 800)})
+    report = analyze(ref, cur, DriftConfig(adversarial_enabled=False))
+    col = next(c for c in report["columns"] if c["column"] == "x")
+    issues = issues_by_column(report).get("x", [])
+    label, value, warn, crit = card_metric(col, issues, DriftConfig().thresholds)
+    assert label == "вне диапазона" and value == 1.0 and (warn, crit) == (0.01, 0.05)
+    text = explain_column(col, issues)
+    assert "эталон почти константен" in text and "вне диапазона" in text
+
+
+def test_plural_forms():
+    from drift_guardian.narrative import plural
+
+    forms = ("замечание", "замечания", "замечаний")
+    assert [plural(n, *forms).split()[1] for n in (1, 2, 4, 5, 11, 14, 21, 22, 100)] == [
+        "замечание", "замечания", "замечания", "замечаний", "замечаний", "замечаний",
+        "замечание", "замечания", "замечаний",
+    ]

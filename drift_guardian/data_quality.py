@@ -106,6 +106,29 @@ def check_data_quality(
                 )
             )
 
+    # 3b. Диапазоны не пересекаются: почти всегда время, счётчик или идентификатор —
+    # такой признак «дрейфует» тривиально и заслоняет остальные.
+    for col in numeric_cols:
+        ref_vals = pd.to_numeric(reference[col], errors="coerce")
+        cur_vals = pd.to_numeric(current[col], errors="coerce")
+        ref_vals, cur_vals = ref_vals[np.isfinite(ref_vals)], cur_vals[np.isfinite(cur_vals)]
+        if len(ref_vals) >= 20 and len(cur_vals) >= 20 and (
+            cur_vals.min() > ref_vals.max() or cur_vals.max() < ref_vals.min()
+        ):
+            issues.append(
+                Issue(
+                    check="disjoint_ranges",
+                    severity="ok",
+                    column=col,
+                    message=(
+                        f"Диапазоны '{col}' в эталоне и батче не пересекаются "
+                        f"([{ref_vals.min():g}, {ref_vals.max():g}] против [{cur_vals.min():g}, {cur_vals.max():g}]). "
+                        "Если это время, счётчик или идентификатор — исключите колонку из анализа; "
+                        "иначе батч целиком вышел за пределы эталона."
+                    ),
+                )
+            )
+
     # 4. Числовые значения вне допустимого диапазона (контракт или [min, max] эталона).
     for col in numeric_cols:
         th = config.thresholds_for(col)

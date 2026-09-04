@@ -143,14 +143,38 @@ class DriftConfig:
         with open(path, encoding="utf-8") as handle:
             return cls.from_dict(yaml.safe_load(handle) or {})
 
-    def to_yaml(self, path: str | Path) -> Path:
-        """Сохраняет конфиг в YAML — удобно хранить пороги рядом с моделью."""
+    @classmethod
+    def from_yaml_text(cls, text: str | bytes) -> DriftConfig:
+        """Загружает конфиг из содержимого YAML (загрузка файла в дашборде)."""
+        if isinstance(text, bytes):
+            text = text.decode("utf-8")
+        data = yaml.safe_load(text) or {}
+        if not isinstance(data, dict):
+            raise ValueError("YAML-конфиг должен быть словарём параметров")
+        return cls.from_dict(data)
+
+    def with_roles(self, columns: list, *, target_column=None, prediction_column=None,
+                   segment_column=None, exclude_columns=None) -> DriftConfig:
+        """Конфиг с ролями колонок из интерфейса; роли, которых нет в данных, отбрасываются."""
+        present = set(columns)
+        return replace(
+            self,
+            target_column=target_column if target_column in present else None,
+            prediction_column=prediction_column if prediction_column in present else None,
+            segment_column=segment_column if segment_column in present else None,
+            exclude_columns=[c for c in (exclude_columns or []) if c in present] or None,
+        )
+
+    def to_yaml_text(self) -> str:
+        """Конфиг как YAML-текст (скачивание из дашборда)."""
         payload = self.to_dict()
         if payload.get("value_bounds"):
             payload["value_bounds"] = {k: list(v) for k, v in payload["value_bounds"].items()}
+        return yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
+
+    def to_yaml(self, path: str | Path) -> Path:
+        """Сохраняет конфиг в YAML — удобно хранить пороги рядом с моделью."""
         target = Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(
-            yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8"
-        )
+        target.write_text(self.to_yaml_text(), encoding="utf-8")
         return target

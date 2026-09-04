@@ -262,6 +262,12 @@ class DriftGuardian:
         all_values = reference[column].value_counts(dropna=True)
         self._segment_values_total = int(len(all_values))
         values = list(all_values.index[: cfg.max_segments])
+        # Отбираем самые частые значения, но числовые метки (день недели, месяц, версия)
+        # показываем по порядку, а не по частоте.
+        try:
+            values.sort(key=float)
+        except (TypeError, ValueError):
+            pass
         sub_config = replace(
             cfg,
             segment_column=None,

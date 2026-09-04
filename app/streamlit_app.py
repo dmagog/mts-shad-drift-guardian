@@ -35,11 +35,13 @@ from drift_guardian.html_report import (  # noqa: E402
     report_to_json,
 )
 from drift_guardian.io import read_csv_any  # noqa: E402
-from drift_guardian.narrative import (  # noqa: E402
+from drift_guardian.narrative import (
     CHECK_LABELS,
     CONCEPT_DRIFT_NOTE,
     HEADLINES,
     SPECIAL_TITLES,
+    # noqa: E402,
+    card_metric,
     drifted_columns,
     explain_column,
     features_stable,
@@ -49,7 +51,7 @@ from drift_guardian.narrative import (  # noqa: E402
     grid_rows,
     hero_facts,
     issues_by_column,
-    psi_of,
+    plural,
     test_lines,
 )
 from drift_guardian.plots import (  # noqa: E402
@@ -164,6 +166,7 @@ def sidebar() -> dict:
         "Режим", [MODE_PAIR, MODE_STREAM], horizontal=True, label_visibility="collapsed",
         index=1 if params.get("mode") == "stream" else 0,
     )
+    st.session_state["mode"] = mode
     st.sidebar.markdown("### Данные")
     source = st.sidebar.radio(
         "Источник данных", ["Демо", "Свои файлы"], horizontal=True, label_visibility="collapsed"
@@ -234,13 +237,14 @@ def sidebar() -> dict:
         yaml_file = st.file_uploader("Загрузить конфиг", type=["yaml", "yml"], label_visibility="collapsed")
         if yaml_file is not None:
             try:
-                yaml_config = DriftConfig.from_dict(yaml.safe_load(yaml_file.getvalue()) or {}).to_dict()
+                yaml_config = DriftConfig.from_yaml_text(yaml_file.getvalue()).to_dict()
                 st.success(f"Конфиг из {yaml_file.name} применён; ползунки порогов отключены.")
             except (TypeError, ValueError, yaml.YAMLError) as exc:
                 st.error(f"Конфиг не прочитан: {exc}")
                 yaml_config = None
 
     target_column = None
+    prediction_column = None
     segment_column = None
     exclude_columns: list[str] = []
     if reference is not None:
@@ -255,10 +259,20 @@ def sidebar() -> dict:
             "Целевая переменная", [NO_TARGET, *columns], index=default_index, format_func=str
         )
         target_column = None if isinstance(chosen, str) and chosen == NO_TARGET else chosen
+        yaml_prediction = (yaml_config or {}).get("prediction_column")
+        prediction_options = [NO_TARGET, *[c for c in columns if c != target_column]]
+        chosen_prediction = st.sidebar.selectbox(
+            "Предсказания модели", prediction_options,
+            index=prediction_options.index(yaml_prediction) if yaml_prediction in prediction_options else 0,
+            format_func=str, help="Колонка с предсказаниями: отдельный блок «дрейф предсказаний».",
+        )
+        prediction_column = (
+            None if isinstance(chosen_prediction, str) and chosen_prediction == NO_TARGET else chosen_prediction
+        )
         yaml_exclude = [c for c in ((yaml_config or {}).get("exclude_columns") or []) if c in columns]
         exclude_columns = st.sidebar.multiselect(
-            "Исключить из анализа", [c for c in columns if c != target_column],
-            default=[c for c in yaml_exclude if c != target_column],
+            "Исключить из анализа", [c for c in columns if c not in (target_column, prediction_column)],
+            default=[c for c in yaml_exclude if c not in (target_column, prediction_column)],
             placeholder="идентификаторы, даты…", format_func=str,
         )
         segment_candidates = [
@@ -275,12 +289,11 @@ def sidebar() -> dict:
         segment_column = None if isinstance(segment_choice, str) and segment_choice == NO_TARGET else segment_choice
 
     if yaml_config is not None:
-        base = dict(yaml_config)
-        base.update(
-            target_column=target_column, exclude_columns=exclude_columns or None,
-            segment_column=segment_column,
+        config = DriftConfig.from_dict(yaml_config).with_roles(
+            list(reference.columns) if reference is not None else [],
+            target_column=target_column, prediction_column=prediction_column,
+            segment_column=segment_column, exclude_columns=exclude_columns,
         )
-        config = DriftConfig.from_dict(base)
         with st.sidebar.expander("Пороги и параметры"):
             th = config.thresholds
             st.caption(
@@ -306,8 +319,8 @@ def sidebar() -> dict:
         )
         config = DriftConfig(
             thresholds=thresholds, bonferroni=bonferroni, adversarial_enabled=adversarial_on,
-            sample_size_guard=guard, target_column=target_column, exclude_columns=exclude_columns or None,
-            segment_column=segment_column,
+            sample_size_guard=guard, target_column=target_column, prediction_column=prediction_column,
+            exclude_columns=exclude_columns or None, segment_column=segment_column,
         )
     ui.footer()
     return {
@@ -327,7 +340,9 @@ def what_changed(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
         ui.section("Что изменилось")
         ui.all_clear(f"Все {total} признаков стабильны: распределения батча совпадают с эталоном.")
         return
-    shown = drifted[:6]
+    limit_key = f"{key_prefix}-cards-limit"
+    limit = st.session_state.get(limit_key, 6)
+    shown = drifted[:limit]
     meta = f"{len(drifted)} из {total} признаков" + (f", показаны {len(shown)}" if len(drifted) > len(shown) else "")
     ui.section("Что изменилось", meta)
     by_column = issues_by_column(report)
@@ -338,11 +353,9 @@ def what_changed(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
         for cell, col in zip(cells, shown[index:index + size], strict=False):
             name = col["column"]
             with cell, st.container(border=True):
-                th = config.thresholds_for(name)
-                ui.feature_card_head(
-                    name, col["severity"], explain_column(col, by_column.get(name, [])),
-                    "PSI", psi_of(col), th.psi_warning, th.psi_critical,
-                )
+                issues = by_column.get(name, [])
+                label, value, warn, crit = card_metric(col, issues, config.thresholds_for(name))
+                ui.feature_card_head(name, col["severity"], explain_column(col, issues), label, value, warn, crit)
                 fig = ui.compact(
                     distribution_figure(col["kind"], reference[name], current[name], None),
                     categorical=col["kind"] == "categorical",
@@ -351,6 +364,10 @@ def what_changed(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
                 if st.button("Подробнее", key=f"{key_prefix}-open-{name}", type="tertiary"):
                     st.session_state[focus_key] = name
         index += size
+    if len(drifted) > len(shown):
+        if st.button(f"Показать ещё {min(6, len(drifted) - len(shown))}", key=f"{key_prefix}-more", type="tertiary"):
+            st.session_state[limit_key] = limit + 6
+            st.rerun()
     render_focus(report, reference, current, key_prefix)
 
 
@@ -411,7 +428,8 @@ def render_segments(report: dict, key_prefix: str) -> None:
     column = meta.get("segment_column")
     n_bad = sum(s["overall_severity"] != "ok" for s in segments)
     total = meta.get("segment_values_total") or len(segments)
-    shown = f"показаны {len(segments)} из {total}" if total > len(segments) else f"{len(segments)} сегментов"
+    shown = (f"показаны {len(segments)} из {total}" if total > len(segments)
+             else plural(len(segments), "сегмент", "сегмента", "сегментов"))
     ui.section(f"По сегментам «{column}»", f"{shown}, с дрейфом: {n_bad}")
     left, right = st.columns(2)
     frame = segment_frame(segments).drop(columns=["первый алерт"])
@@ -434,6 +452,12 @@ def render_issues(report: dict) -> None:
     meta = report["meta"]
     for text in meta.get("notes", []):
         ui.note(text)
+    date_like = [c for c, reason in (meta.get("skipped_reasons") or {}).items() if "дат" in reason]
+    if date_like and st.session_state.get("mode") == MODE_PAIR:
+        ui.note(
+            f"В данных есть колонка с датами ({', '.join(map(str, date_like))}): в режиме «Временной ряд» "
+            "по ней можно посмотреть динамику дрейфа по периодам."
+        )
     if meta.get("underpowered_columns") and not meta.get("insufficient_data"):
         ui.note(
             "Батч мал для надёжной оценки PSI/JS по колонкам: "
@@ -445,11 +469,21 @@ def render_issues(report: dict) -> None:
 
 # ---------- вкладки с деталями ----------
 
-def render_summary_tab(report: dict) -> None:
+def render_summary_tab(report: dict, key_prefix: str = "pair") -> None:
     frame = column_summary_frame(report)
     if frame.empty:
         ui.note("Нет признаков для анализа.")
         return
+    if len(frame) > 12:
+        f1, f2 = st.columns([2, 1])
+        query = f1.text_input("Поиск по имени признака", key=f"{key_prefix}-summary-query",
+                              placeholder="часть имени…", label_visibility="collapsed")
+        only_drift = f2.checkbox("Только с дрейфом", key=f"{key_prefix}-summary-drift")
+        if query:
+            frame = frame[frame["признак"].astype(str).str.contains(query, case=False, regex=False)]
+        if only_drift:
+            frame = frame[frame["статус"] != STATUS_LABELS["ok"]]
+        st.caption(f"Показано признаков: {len(frame)}")
     st.dataframe(style_severity(display_summary(frame)), width="stretch", hide_index=True,
                  column_config=SUMMARY_FORMATS)
     ui.note(
@@ -532,7 +566,7 @@ def render_export_tab(report: dict, reference: pd.DataFrame, current: pd.DataFra
                          file_name="drift_report.json", mime="application/json", key=f"{key_prefix}-dl-json")
     col3.download_button(
         "Скачать конфиг YAML",
-        data=yaml.safe_dump(config.to_dict(), allow_unicode=True, sort_keys=False).encode("utf-8"),
+        data=config.to_yaml_text().encode("utf-8"),
         file_name="drift_config.yaml", mime="application/x-yaml", key=f"{key_prefix}-dl-yaml",
     )
     if timeline is not None:
@@ -550,7 +584,7 @@ def render_details(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
     ui.section("Подробности")
     tabs = st.tabs(["Все признаки", "Распределения", "Схема и качество", "Adversarial validation", "Экспорт"])
     with tabs[0]:
-        render_summary_tab(report)
+        render_summary_tab(report, key_prefix)
     with tabs[1]:
         render_distributions_tab(report, reference, current, key_prefix)
     with tabs[2]:

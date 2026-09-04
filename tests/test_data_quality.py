@@ -99,3 +99,11 @@ def test_new_categories_hint_when_only_spaces_or_case_differ():
     found = _issues_by_check(issues)
     assert found["new_categories"].severity == "critical"
     assert "пробелами или регистром" in found["new_categories"].message
+
+
+def test_disjoint_ranges_hint_for_time_like_column():
+    ref = pd.DataFrame({"t": np.arange(0, 1000, dtype=float)})
+    cur = pd.DataFrame({"t": np.arange(1000, 1500, dtype=float)})
+    issues = check_data_quality(ref, cur, ["t"], [], DriftConfig())
+    hint = next(i for i in issues if i.check == "disjoint_ranges")
+    assert hint.severity == "ok" and "исключите" in hint.message

@@ -7,7 +7,7 @@
     "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 11.0% строк текущего батча.",
     "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=429 (p<1e-16), jensen_shannon=0.13.",
     "КРИТИЧНО: дрейф по признаку 'age' — ks=0.239 (p<1e-16), psi=0.337, jensen_shannon=0.243, wasserstein_norm=0.605.",
-    "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.185 (p<1e-16), psi=0.193, jensen_shannon=0.185, wasserstein_norm=0.465.",
+    "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.185 (p<1e-16), jensen_shannon=0.185, wasserstein_norm=0.465.",
     "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.221 (p<1e-16), psi=0.388, jensen_shannon=0.26, wasserstein_norm=0.428.",
     "КРИТИЧНО: дрейф по признаку 'channel' — chi2=2.25e+03 (p<1e-16), psi=0.782, jensen_shannon=0.238.",
     "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.845); сильнее всего изменились: loan_amount, income, channel.",
@@ -96,7 +96,8 @@
           "p_value": null,
           "threshold": "warning >= 0.3, critical >= 0.5",
           "details": {
-            "scale_std": 9.853607
+            "scale_std": 9.853607,
+            "scale": "reference"
           }
         }
       ]
@@ -119,9 +120,9 @@
         {
           "name": "psi",
           "statistic": 0.1931,
-          "severity": "warning",
+          "severity": "ok",
           "p_value": null,
-          "threshold": "warning >= 0.1, critical >= 0.2",
+          "threshold": "warning >= 0.2, critical >= 0.4",
           "details": {
             "n_bins": 10,
             "noise_floor": 0.0059,
@@ -156,7 +157,8 @@
           "p_value": null,
           "threshold": "warning >= 0.3, critical >= 0.5",
           "details": {
-            "scale_std": 36449.011873
+            "scale_std": 36449.011873,
+            "scale": "reference"
           }
         }
       ]
@@ -216,7 +218,8 @@
           "p_value": null,
           "threshold": "warning >= 0.3, critical >= 0.5",
           "details": {
-            "scale_std": 84184.04552
+            "scale_std": 84184.04552,
+            "scale": "reference"
           }
         }
       ]
@@ -276,7 +279,8 @@
           "p_value": null,
           "threshold": "warning >= 0.3, critical >= 0.5",
           "details": {
-            "scale_std": 3.868981
+            "scale_std": 3.868981,
+            "scale": "reference"
           }
         }
       ]
@@ -529,7 +533,7 @@
     "note": ""
   },
   "meta": {
-    "generated_at": "2026-09-04T18:17:02+00:00",
+    "generated_at": "2026-09-04T18:58:48+00:00",
     "reference_rows": 20000,
     "current_rows": 5000,
     "numeric_columns": [
@@ -551,6 +555,7 @@
     "insufficient_data": false,
     "notes": [],
     "segment_column": "region",
+    "segment_values_total": 4,
     "target_column": "target",
     "prediction_column": null,
     "alpha_effective": 0.00625,
@@ -586,19 +591,40 @@
       "identifier_min_rows": 100,
       "adversarial_enabled": true,
       "adversarial_max_rows": 50000,
-      "adversarial_n_jobs": null,
+      "adversarial_n_jobs": 1,
       "random_state": 42,
       "numeric_columns": null,
       "categorical_columns": null,
-      "exclude_columns": null,
+      "exclude_columns": [],
       "target_column": "target",
       "prediction_column": null,
-      "value_bounds": null,
-      "allowed_categories": null,
+      "value_bounds": {
+        "age": [
+          18.0,
+          90.0
+        ],
+        "income": [
+          0.0,
+          5000000.0
+        ]
+      },
+      "allowed_categories": {
+        "employment_type": [
+          "наёмный",
+          "ИП",
+          "самозанятый",
+          "безработный"
+        ]
+      },
       "segment_column": "region",
       "max_segments": 8,
       "segment_adversarial": false,
-      "column_thresholds": null
+      "column_thresholds": {
+        "income": {
+          "psi_warning": 0.2,
+          "psi_critical": 0.4
+        }
+      }
     }
   },
   "target_drift": {
@@ -669,7 +695,7 @@
         "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 11.8% строк текущего батча.",
         "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=84.1 (p<1e-16), jensen_shannon=0.106.",
         "КРИТИЧНО: дрейф по признаку 'age' — ks=0.236 (p<1e-16), psi=0.359, jensen_shannon=0.25, wasserstein_norm=0.611.",
-        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.18 (p<1e-16), psi=0.172, jensen_shannon=0.174, wasserstein_norm=0.432.",
+        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.18 (p<1e-16), jensen_shannon=0.174, wasserstein_norm=0.432.",
         "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.234 (p<1e-16), psi=0.4, jensen_shannon=0.264, wasserstein_norm=0.417.",
         "КРИТИЧНО: дрейф по признаку 'channel' — chi2=737 (p<1e-16), psi=0.854, jensen_shannon=0.248."
       ],
@@ -798,7 +824,7 @@
         "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 10.2% строк текущего батча.",
         "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=89.4 (p<1e-16), psi=0.134, jensen_shannon=0.154.",
         "КРИТИЧНО: дрейф по признаку 'age' — ks=0.252 (p<1e-16), psi=0.801, jensen_shannon=0.288, wasserstein_norm=0.596.",
-        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.179 (p=1.5e-14), psi=0.197, jensen_shannon=0.187, wasserstein_norm=0.431.",
+        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.179 (p=1.5e-14), jensen_shannon=0.187, wasserstein_norm=0.431.",
         "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.214 (p<1e-16), psi=0.367, jensen_shannon=0.253, wasserstein_norm=0.414.",
         "КРИТИЧНО: дрейф по признаку 'channel' — chi2=305 (p<1e-16), psi=0.715, jensen_shannon=0.229."
       ],

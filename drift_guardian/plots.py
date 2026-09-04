@@ -339,6 +339,11 @@ _SEQUENTIAL_BLUE = [
 ]
 
 
+def _short(label: str, limit: int = 18) -> str:
+    """Подпись для оси: длинные имена усекаются, полное имя остаётся в подсказке."""
+    return label if len(label) <= limit else label[: limit - 1] + "…"
+
+
 def segment_heatmap_figure(
     segments: list[dict], max_columns: int = 12, title: str | None = None
 ) -> go.Figure:
@@ -348,17 +353,18 @@ def segment_heatmap_figure(
         for column, value in segment.get("psi_by_column", {}).items():
             columns[column] = max(columns.get(column, 0.0), float(value))
     top = sorted(columns, key=columns.get, reverse=True)[:max_columns]
-    labels = [str(s["label"]) for s in segments]
+    labels = [_short(str(s["label"])) for s in segments]
     z = [[s.get("psi_by_column", {}).get(col) for col in top] for s in segments]
     zmax = max(0.3, max((v for row in z for v in row if v is not None), default=0.3))
     fig = go.Figure(
         go.Heatmap(
-            z=z, x=[str(c) for c in top], y=labels,
+            z=z, x=[_short(str(c)) for c in top], y=labels,
+            customdata=[[str(c) for c in top]] * len(labels),
             colorscale=_SEQUENTIAL_BLUE, zmin=0, zmax=zmax,
             text=[[f"{v:.2f}" if v is not None else "" for v in row] for row in z],
             texttemplate="%{text}", textfont=dict(size=11),
             xgap=2, ygap=2, colorbar=dict(title="PSI", thickness=12, len=0.9),
-            hovertemplate="сегмент %{y}<br>%{x}: PSI %{z:.3f}<extra></extra>",
+            hovertemplate="сегмент %{y}<br>%{customdata}: PSI %{z:.3f}<extra></extra>",
         )
     )
     _apply_layout(fig, title, "", "")

@@ -46,6 +46,20 @@ def fmt_p(value) -> str:
     return "p < 1e-16" if value < 1e-16 else f"p = {value:.2g}"
 
 
+def plural(n: int, one: str, few: str, many: str) -> str:
+    """Число с существительным по правилам русского языка: 1 сегмент, 2 сегмента, 5 сегментов."""
+    n_abs = abs(int(n))
+    if 11 <= n_abs % 100 <= 14:
+        form = many
+    elif n_abs % 10 == 1:
+        form = one
+    elif 2 <= n_abs % 10 <= 4:
+        form = few
+    else:
+        form = many
+    return f"{n} {form}"
+
+
 def psi_of(col: dict) -> float:
     return next((t["statistic"] for t in col["tests"] if t["name"] == "psi"), 0.0)
 
@@ -71,9 +85,12 @@ def explain_column(col: dict, issues: list[dict]) -> str:
     tests = {t["name"]: t for t in col["tests"]}
     parts: list[str] = []
     if col["kind"] == "numeric":
-        w = tests.get("wasserstein_norm", {}).get("statistic")
+        w_test = tests.get("wasserstein_norm", {})
+        w = w_test.get("statistic")
         if w is not None and w >= 0.1:
             parts.append(f"сдвиг на {w:.2f}σ")
+        if w_test.get("details", {}).get("scale") == "pooled":
+            parts.append("эталон почти константен")
     for issue in issues:
         value = issue.get("value") or 0.0
         if issue["check"] == "missing_values":
@@ -92,6 +109,21 @@ def explain_column(col: dict, issues: list[dict]) -> str:
         parts.append("батч мал")
     text = ", ".join(parts)
     return text[0].upper() + text[1:]
+
+
+def card_metric(col: dict, issues: list[dict], thresholds) -> tuple[str, float, float, float]:
+    """Метрика для полосы карточки: PSI, а если он неинформативен (почти константный эталон,
+    признак поплыл за диапазон) — доля значений вне диапазона или новых категорий."""
+    psi = psi_of(col)
+    if psi < thresholds.psi_warning:
+        for issue in issues:
+            if issue["check"] == "out_of_range":
+                return ("вне диапазона", float(issue.get("value") or 0.0),
+                        thresholds.out_of_range_warning, thresholds.out_of_range_critical)
+            if issue["check"] == "new_categories":
+                return ("новые категории", float(issue.get("value") or 0.0),
+                        thresholds.new_category_warning, thresholds.new_category_critical)
+    return ("PSI", psi, thresholds.psi_warning, thresholds.psi_critical)
 
 
 def test_lines(col: dict) -> list[tuple[str, str, str]]:
@@ -115,7 +147,8 @@ def hero_facts(report: dict) -> list[tuple[str, str]]:
     adversarial = report.get("adversarial")
     facts = [
         (" признаков с дрейфом", f"{n_drifted} из {len(columns)}"),
-        (" замечаний к данным", str(n_quality)),
+        (" " + plural(n_quality, "замечание", "замечания", "замечаний").split(" ", 1)[1] + " к данным",
+         str(n_quality)),
         (" adversarial AUC", f"{adversarial['roc_auc']:.2f}" if adversarial else "выкл."),
         (" строк: эталон / батч", f"{fmt_int(meta['reference_rows'])} / {fmt_int(meta['current_rows'])}"),
     ]

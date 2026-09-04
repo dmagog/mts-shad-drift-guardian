@@ -135,3 +135,24 @@ def test_infinite_values_do_not_break_numeric_tests():
     wasserstein = next(t for t in report.tests if t.name == "wasserstein_norm")
     assert np.isfinite(wasserstein.statistic)
     assert report.severity == "ok"
+
+
+def test_near_constant_reference_uses_pooled_scale():
+    rng = np.random.default_rng(0)
+    ref, cur = _frames(np.full(2000, 1e-6) + rng.normal(0, 1e-15, 2000), rng.uniform(0, 5, 2000))
+    report = analyze_numeric_column("x", ref, cur, DriftConfig(), alpha_effective=0.05)
+    w = next(t for t in report.tests if t.name == "wasserstein_norm")
+    assert w.details["scale"] == "pooled" and 0.5 < w.statistic < 5
+    assert report.severity == "critical"
+
+
+def test_changed_constant_is_detected():
+    ref, cur = _frames(np.full(500, 1.0), np.full(500, 2.0))
+    report = analyze_numeric_column("x", ref, cur, DriftConfig(), alpha_effective=0.05)
+    assert report.severity == "critical"
+
+
+def test_identical_constants_are_not_drift():
+    ref, cur = _frames(np.full(500, 1.0), np.full(500, 1.0))
+    report = analyze_numeric_column("x", ref, cur, DriftConfig(), alpha_effective=0.05)
+    assert report.severity == "ok"

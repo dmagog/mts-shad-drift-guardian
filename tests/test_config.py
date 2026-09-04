@@ -40,3 +40,25 @@ def test_column_thresholds_override_and_validation(tmp_path):
     assert loaded.column_thresholds == {"income": {"psi_warning": 0.3, "psi_critical": 0.6}}
     with pytest.raises(ValueError, match="Неизвестные пороги"):
         DriftConfig(column_thresholds={"income": {"psi_warn": 0.3}})
+
+
+def test_yaml_text_roundtrip_and_roles_merge():
+    config = DriftConfig(
+        thresholds=Thresholds(psi_warning=0.05), target_column="target", segment_column="region",
+        exclude_columns=["id", "dt"], column_thresholds={"income": {"psi_critical": 0.5}},
+        value_bounds={"age": (18, 90)},
+    )
+    restored = DriftConfig.from_yaml_text(config.to_yaml_text().encode("utf-8"))
+    assert restored.thresholds.psi_warning == 0.05
+    assert restored.column_thresholds == {"income": {"psi_critical": 0.5}}
+    assert restored.value_bounds == {"age": (18.0, 90.0)}
+    merged = restored.with_roles(["age", "income", "region"], target_column="target",
+                                 segment_column="region", exclude_columns=["id", "income"])
+    assert merged.target_column is None and merged.segment_column == "region"
+    assert merged.exclude_columns == ["income"]
+    assert merged.column_thresholds == restored.column_thresholds
+
+
+def test_yaml_text_rejects_non_mapping():
+    with pytest.raises(ValueError):
+        DriftConfig.from_yaml_text("- just\n- a list\n")

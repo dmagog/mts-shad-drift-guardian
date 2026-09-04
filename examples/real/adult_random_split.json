@@ -1,0 +1,1061 @@
+{
+  "overall_severity": "ok",
+  "recommendation": "Дрейф не обнаружен, модель можно эксплуатировать в штатном режиме.",
+  "alerts": [],
+  "schema": [],
+  "data_quality": [],
+  "columns": [
+    {
+      "column": "age",
+      "kind": "numeric",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.0062,
+          "severity": "ok",
+          "p_value": 0.7542641205423275,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0007,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10,
+            "noise_floor": 0.0018,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0005,
+              0.0028
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0111,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0179,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0099,
+              0.0224
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.0108,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 13.685484,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "fnlwgt",
+      "kind": "numeric",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.0072,
+          "severity": "ok",
+          "p_value": 0.5808496958856716,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0006,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10,
+            "noise_floor": 0.0017,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0004,
+              0.0027
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0104,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0176,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0089,
+              0.0222
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.0096,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 105605.026165,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "education-num",
+      "kind": "numeric",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.0106,
+          "severity": "ok",
+          "p_value": 0.14599965348741184,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0011,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 6,
+            "noise_floor": 0.0014,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0004,
+              0.0031
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0139,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0158,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.009,
+              0.0235
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.0316,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 2.576719,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "capital-gain",
+      "kind": "numeric",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.0058,
+          "severity": "ok",
+          "p_value": 0.8283674851447007,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 1,
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.0231,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 7810.602273,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "capital-loss",
+      "kind": "numeric",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.0025,
+          "severity": "ok",
+          "p_value": 0.9999996430958418,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 1,
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.0097,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 404.996782,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "hours-per-week",
+      "kind": "numeric",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.0057,
+          "severity": "ok",
+          "p_value": 0.8369787157297203,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0003,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 6,
+            "noise_floor": 0.0013,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0002,
+              0.0016
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0072,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0153,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0058,
+              0.0168
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.0134,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 12.32185,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "workclass",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 13.7813,
+          "severity": "ok",
+          "p_value": 0.055210801302426296,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0012,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 8,
+            "n_categories_total": 8,
+            "noise_floor": 0.0014,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0006,
+              0.0035
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.015,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0158,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0104,
+              0.0247
+            ],
+            "underpowered": false
+          }
+        }
+      ]
+    },
+    {
+      "column": "education",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 33.9636,
+          "severity": "ok",
+          "p_value": 0.003445684457693296,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0029,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 16,
+            "n_categories_total": 16,
+            "noise_floor": 0.0025,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0025,
+              0.0064
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.023,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0212,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0212,
+              0.034
+            ],
+            "underpowered": false
+          }
+        }
+      ]
+    },
+    {
+      "column": "marital-status",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 3.8229,
+          "severity": "ok",
+          "p_value": 0.7006317436384502,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0003,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 7,
+            "n_categories_total": 7,
+            "noise_floor": 0.0013,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0002,
+              0.002
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0077,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0153,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0067,
+              0.0191
+            ],
+            "underpowered": false
+          }
+        }
+      ]
+    },
+    {
+      "column": "occupation",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 20.4196,
+          "severity": "ok",
+          "p_value": 0.08523119386424713,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0019,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 14,
+            "n_categories_total": 14,
+            "noise_floor": 0.0026,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0016,
+              0.0051
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0184,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0218,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.017,
+              0.0304
+            ],
+            "underpowered": false
+          }
+        }
+      ]
+    },
+    {
+      "column": "relationship",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 0.2414,
+          "severity": "ok",
+          "p_value": 0.9986021305323688,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 6,
+            "n_categories_total": 6,
+            "noise_floor": 0.0013,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0001,
+              0.0011
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0019,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0152,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0038,
+              0.0139
+            ],
+            "underpowered": false
+          }
+        }
+      ]
+    },
+    {
+      "column": "race",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 3.8534,
+          "severity": "ok",
+          "p_value": 0.4262111217983424,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0003,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 5,
+            "n_categories_total": 5,
+            "noise_floor": 0.0013,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0001,
+              0.0016
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0078,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0151,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0043,
+              0.0172
+            ],
+            "underpowered": false
+          }
+        }
+      ]
+    },
+    {
+      "column": "sex",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 1.1778,
+          "severity": "ok",
+          "p_value": 0.2778091904290612,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0001,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 2,
+            "n_categories_total": 2,
+            "noise_floor": 0.0006,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0007
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0043,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0104,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0003,
+              0.0111
+            ],
+            "underpowered": false
+          }
+        }
+      ]
+    },
+    {
+      "column": "native-country",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 21.8329,
+          "severity": "ok",
+          "p_value": 0.3496440472948131,
+          "threshold": "p < 0.0036 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.002,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 21,
+            "n_categories_total": 41,
+            "noise_floor": 0.0032,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.002,
+              0.0061
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0188,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0239,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0188,
+              0.033
+            ],
+            "underpowered": false
+          }
+        }
+      ]
+    }
+  ],
+  "adversarial": {
+    "roc_auc": 0.5006,
+    "severity": "ok",
+    "backend": "lightgbm",
+    "n_rows_used": 43818,
+    "top_features": [
+      {
+        "feature": "fnlwgt",
+        "importance": 0.2685
+      },
+      {
+        "feature": "age",
+        "importance": 0.1918
+      },
+      {
+        "feature": "hours-per-week",
+        "importance": 0.0995
+      },
+      {
+        "feature": "occupation",
+        "importance": 0.088
+      },
+      {
+        "feature": "education",
+        "importance": 0.0651
+      },
+      {
+        "feature": "education-num",
+        "importance": 0.0602
+      },
+      {
+        "feature": "capital-gain",
+        "importance": 0.0401
+      },
+      {
+        "feature": "relationship",
+        "importance": 0.0388
+      },
+      {
+        "feature": "workclass",
+        "importance": 0.0347
+      },
+      {
+        "feature": "native-country",
+        "importance": 0.0297
+      }
+    ],
+    "overlap_share": 0.0013,
+    "note": "0% строк батча точно совпадают со строками эталона и исключены из adversarial-валидации."
+  },
+  "meta": {
+    "generated_at": "2026-09-04T18:57:15+00:00",
+    "reference_rows": 30000,
+    "current_rows": 18842,
+    "numeric_columns": [
+      "age",
+      "fnlwgt",
+      "education-num",
+      "capital-gain",
+      "capital-loss",
+      "hours-per-week"
+    ],
+    "categorical_columns": [
+      "workclass",
+      "education",
+      "marital-status",
+      "occupation",
+      "relationship",
+      "race",
+      "sex",
+      "native-country"
+    ],
+    "skipped_columns": [],
+    "skipped_reasons": {},
+    "underpowered_columns": [],
+    "excluded_columns": [],
+    "insufficient_data": false,
+    "notes": [
+      "0% строк батча точно совпадают со строками эталона и исключены из adversarial-валидации."
+    ],
+    "segment_column": "sex",
+    "segment_values_total": 2,
+    "target_column": "class",
+    "prediction_column": null,
+    "alpha_effective": 0.0035714285714285718,
+    "config": {
+      "thresholds": {
+        "psi_warning": 0.1,
+        "psi_critical": 0.2,
+        "alpha": 0.05,
+        "js_warning": 0.1,
+        "js_critical": 0.2,
+        "wasserstein_warning": 0.3,
+        "wasserstein_critical": 0.5,
+        "adversarial_auc_warning": 0.55,
+        "adversarial_auc_critical": 0.65,
+        "missing_delta_warning": 0.05,
+        "missing_delta_critical": 0.15,
+        "out_of_range_warning": 0.01,
+        "out_of_range_critical": 0.05,
+        "new_category_warning": 0.01,
+        "new_category_critical": 0.05,
+        "duplicates_delta_warning": 0.05,
+        "duplicates_delta_critical": 0.15
+      },
+      "n_bins": 10,
+      "bonferroni": true,
+      "max_categories": 20,
+      "categorical_int_unique_limit": 10,
+      "min_samples": 20,
+      "sample_size_guard": true,
+      "bootstrap_samples": 200,
+      "noise_quantile": 0.99,
+      "identifier_unique_share": 0.98,
+      "identifier_min_rows": 100,
+      "adversarial_enabled": true,
+      "adversarial_max_rows": 50000,
+      "adversarial_n_jobs": null,
+      "random_state": 42,
+      "numeric_columns": null,
+      "categorical_columns": null,
+      "exclude_columns": null,
+      "target_column": "class",
+      "prediction_column": null,
+      "value_bounds": null,
+      "allowed_categories": null,
+      "segment_column": "sex",
+      "max_segments": 8,
+      "segment_adversarial": false,
+      "column_thresholds": null
+    }
+  },
+  "target_drift": {
+    "column": "class",
+    "kind": "categorical",
+    "severity": "ok",
+    "tests": [
+      {
+        "name": "chi2",
+        "statistic": 0.0004,
+        "severity": "ok",
+        "p_value": 0.9834348897314495,
+        "threshold": "p < 0.05 и размер эффекта >= warning",
+        "details": {
+          "significant": false
+        }
+      },
+      {
+        "name": "psi",
+        "statistic": 0.0,
+        "severity": "ok",
+        "p_value": null,
+        "threshold": "warning >= 0.1, critical >= 0.2",
+        "details": {
+          "n_categories": 2,
+          "n_categories_total": 2,
+          "noise_floor": 0.0006,
+          "noise_quantile": 0.99,
+          "ci95": [
+            0.0,
+            0.0004
+          ],
+          "underpowered": false
+        }
+      },
+      {
+        "name": "jensen_shannon",
+        "statistic": 0.0001,
+        "severity": "ok",
+        "p_value": null,
+        "threshold": "warning >= 0.1, critical >= 0.2",
+        "details": {
+          "noise_floor": 0.0102,
+          "noise_quantile": 0.99,
+          "ci95": [
+            0.0001,
+            0.0081
+          ],
+          "underpowered": false
+        }
+      }
+    ]
+  },
+  "prediction_drift": null,
+  "segments": [
+    {
+      "label": "Male",
+      "rows": 12651,
+      "overall_severity": "ok",
+      "recommendation": "Дрейф не обнаружен, модель можно эксплуатировать в штатном режиме.",
+      "n_critical": 0,
+      "n_warning": 0,
+      "target_severity": "ok",
+      "adversarial_auc": null,
+      "alerts": [],
+      "psi_by_column": {
+        "age": 0.0013,
+        "fnlwgt": 0.0015,
+        "education-num": 0.0012,
+        "capital-gain": 0.0,
+        "capital-loss": 0.0,
+        "hours-per-week": 0.0007,
+        "workclass": 0.0013,
+        "education": 0.0031,
+        "marital-status": 0.0003,
+        "occupation": 0.0016,
+        "relationship": 0.0004,
+        "race": 0.0002,
+        "native-country": 0.0019
+      },
+      "severity_by_column": {
+        "age": "ok",
+        "fnlwgt": "ok",
+        "education-num": "ok",
+        "capital-gain": "ok",
+        "capital-loss": "ok",
+        "hours-per-week": "ok",
+        "workclass": "ok",
+        "education": "ok",
+        "marital-status": "ok",
+        "occupation": "ok",
+        "relationship": "ok",
+        "race": "ok",
+        "native-country": "ok"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 19999,
+      "share_reference": 0.6666,
+      "share_current": 0.6714
+    },
+    {
+      "label": "Female",
+      "rows": 6191,
+      "overall_severity": "ok",
+      "recommendation": "Дрейф не обнаружен, модель можно эксплуатировать в штатном режиме.",
+      "n_critical": 0,
+      "n_warning": 0,
+      "target_severity": "ok",
+      "adversarial_auc": null,
+      "alerts": [],
+      "psi_by_column": {
+        "age": 0.0008,
+        "fnlwgt": 0.0043,
+        "education-num": 0.0008,
+        "capital-gain": 0.0,
+        "capital-loss": 0.0,
+        "hours-per-week": 0.0004,
+        "workclass": 0.003,
+        "education": 0.0031,
+        "marital-status": 0.0017,
+        "occupation": 0.0044,
+        "relationship": 0.0003,
+        "race": 0.0017,
+        "native-country": 0.0062
+      },
+      "severity_by_column": {
+        "age": "ok",
+        "fnlwgt": "ok",
+        "education-num": "ok",
+        "capital-gain": "ok",
+        "capital-loss": "ok",
+        "hours-per-week": "ok",
+        "workclass": "ok",
+        "education": "ok",
+        "marital-status": "ok",
+        "occupation": "ok",
+        "relationship": "ok",
+        "race": "ok",
+        "native-country": "ok"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 10001,
+      "share_reference": 0.3334,
+      "share_current": 0.3286
+    }
+  ]
+}

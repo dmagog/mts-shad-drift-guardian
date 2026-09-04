@@ -45,3 +45,36 @@ def test_feature_card_opens_detail_panel():
     assert not app.exception, [e.value for e in app.exception]
     markdown = " ".join(m.value for m in app.markdown)
     assert "Признак «" in markdown
+
+
+def test_wide_data_gets_show_more_and_table_filter(monkeypatch):
+    """Много признаков: карточки раскрываются кнопкой, таблица получает поиск и фильтр."""
+    import numpy as np
+    import pandas as pd
+
+    from drift_guardian import demo
+
+    def wide_demo(scenario: str, ref_rows: int = 20000, cur_rows: int = 5000, seed: int = 42):
+        rng = np.random.default_rng(seed)
+        ref = pd.DataFrame({f"f{i:02d}": rng.normal(0, 1, 3000) for i in range(20)})
+        cur = pd.DataFrame({f"f{i:02d}": rng.normal(0, 1, 1500) for i in range(20)})
+        for i in range(8):
+            cur[f"f{i:02d}"] += 1.0 + 0.2 * i
+        ref["target"], cur["target"] = rng.integers(0, 2, 3000), rng.integers(0, 2, 1500)
+        return ref, cur
+
+    monkeypatch.setattr(demo, "make_demo", wide_demo)
+    app = AppTest.from_file(str(APP_PATH), default_timeout=240)
+    app.run()
+    app.sidebar.number_input[0].set_value(7).run()
+    assert not app.exception, [e.value for e in app.exception]
+    more = [b for b in app.button if b.key == "pair-more"]
+    assert more and more[0].label.startswith("Показать ещё")
+    more[0].click().run()
+    assert not app.exception, [e.value for e in app.exception]
+    assert not [b for b in app.button if b.key == "pair-more"], "все 8 карточек показаны"
+    assert app.text_input(key="pair-summary-query").value == ""
+    app.checkbox(key="pair-summary-drift").check().run()
+    assert not app.exception, [e.value for e in app.exception]
+    captions = " ".join(c.value for c in app.caption)
+    assert "Показано признаков: 8" in captions

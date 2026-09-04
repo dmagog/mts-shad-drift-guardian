@@ -545,7 +545,7 @@
     "channel"
   ],
   "meta": {
-    "generated_at": "2026-09-04T18:09:00+00:00",
+    "generated_at": "2026-09-04T18:59:03+00:00",
     "compare_previous": true,
     "config": {
       "thresholds": {
@@ -587,7 +587,11 @@
       "target_column": "target",
       "prediction_column": null,
       "value_bounds": null,
-      "allowed_categories": null
+      "allowed_categories": null,
+      "segment_column": null,
+      "max_segments": 8,
+      "segment_adversarial": false,
+      "column_thresholds": null
     },
     "dropped_rows": 0,
     "total_rows": 24000

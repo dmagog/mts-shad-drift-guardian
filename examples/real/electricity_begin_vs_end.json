@@ -1,0 +1,1030 @@
+{
+  "overall_severity": "critical",
+  "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+  "alerts": [
+    "КРИТИЧНО: 100.0% значений 'date' вне диапазона эталона [0, 0.433963].",
+    "КРИТИЧНО: 100.0% значений 'vicprice' вне диапазона эталона [0.003467, 0.003467].",
+    "КРИТИЧНО: 100.0% значений 'vicdemand' вне диапазона эталона [0.422915, 0.422915].",
+    "КРИТИЧНО: 99.8% значений 'transfer' вне диапазона эталона [0.414912, 0.414912].",
+    "КРИТИЧНО: дрейф по признаку 'date' — ks=1 (p<1e-16), psi=8.27, jensen_shannon=0.867, wasserstein_norm=4.46.",
+    "КРИТИЧНО: дрейф по признаку 'nswprice' — ks=0.44 (p<1e-16), psi=0.914, jensen_shannon=0.391, wasserstein_norm=0.776.",
+    "ВНИМАНИЕ: дрейф по признаку 'nswdemand' — ks=0.109 (p<1e-16), jensen_shannon=0.117.",
+    "ВНИМАНИЕ: дрейф по признаку 'vicprice' — ks=0.632 (p<1e-16), wasserstein_norm=0.395.",
+    "КРИТИЧНО: дрейф по признаку 'vicdemand' — ks=0.534 (p<1e-16), wasserstein_norm=1.19.",
+    "КРИТИЧНО: дрейф по признаку 'transfer' — ks=0.775 (p<1e-16), wasserstein_norm=1.33.",
+    "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=1.000); сильнее всего изменились: date, nswdemand, nswprice.",
+    "КРИТИЧНО: в сегменте day=1 критический дрейф по признакам: date, nswprice, nswdemand, vicprice, vicdemand, transfer.",
+    "КРИТИЧНО: в сегменте day=2 критический дрейф по признакам: date, nswprice, vicdemand, transfer.",
+    "КРИТИЧНО: в сегменте day=3 критический дрейф по признакам: date, nswprice, vicdemand, transfer.",
+    "КРИТИЧНО: в сегменте day=4 критический дрейф по признакам: date, nswprice, vicprice, vicdemand, transfer.",
+    "КРИТИЧНО: в сегменте day=5 критический дрейф по признакам: date, nswprice, vicprice, vicdemand, transfer.",
+    "КРИТИЧНО: в сегменте day=6 критический дрейф по признакам: date, nswprice, nswdemand, vicprice, vicdemand, transfer.",
+    "КРИТИЧНО: в сегменте day=7 критический дрейф по признакам: date, nswprice, nswdemand, vicprice, vicdemand, transfer."
+  ],
+  "schema": [],
+  "data_quality": [
+    {
+      "check": "disjoint_ranges",
+      "severity": "ok",
+      "message": "Диапазоны 'date' в эталоне и батче не пересекаются ([0, 0.433963] против [0.867307, 1]). Если это время, счётчик или идентификатор — исключите колонку из анализа; иначе батч целиком вышел за пределы эталона.",
+      "column": "date",
+      "value": null
+    },
+    {
+      "check": "out_of_range",
+      "severity": "critical",
+      "message": "100.0% значений 'date' вне диапазона эталона [0, 0.433963].",
+      "column": "date",
+      "value": 1.0
+    },
+    {
+      "check": "out_of_range",
+      "severity": "critical",
+      "message": "100.0% значений 'vicprice' вне диапазона эталона [0.003467, 0.003467].",
+      "column": "vicprice",
+      "value": 0.9999
+    },
+    {
+      "check": "out_of_range",
+      "severity": "critical",
+      "message": "100.0% значений 'vicdemand' вне диапазона эталона [0.422915, 0.422915].",
+      "column": "vicdemand",
+      "value": 1.0
+    },
+    {
+      "check": "out_of_range",
+      "severity": "critical",
+      "message": "99.8% значений 'transfer' вне диапазона эталона [0.414912, 0.414912].",
+      "column": "transfer",
+      "value": 0.9976
+    }
+  ],
+  "columns": [
+    {
+      "column": "date",
+      "kind": "numeric",
+      "severity": "critical",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 1.0,
+          "severity": "warning",
+          "p_value": 0.0,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 8.2658,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10,
+            "noise_floor": 0.003,
+            "noise_quantile": 0.99,
+            "ci95": [
+              7.8682,
+              8.2534
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.8671,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0234,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.8626,
+              0.8705
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 4.4634,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 0.175057,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "period",
+      "kind": "numeric",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.0016,
+          "severity": "ok",
+          "p_value": 1.0,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10,
+            "noise_floor": 0.0029,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0004,
+              0.0024
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0013,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0228,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0081,
+              0.0209
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.0028,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 0.294753,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "nswprice",
+      "kind": "numeric",
+      "severity": "critical",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.4395,
+          "severity": "warning",
+          "p_value": 0.0,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.9144,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10,
+            "noise_floor": 0.0032,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.8648,
+              0.9547
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.3906,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0239,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.3805,
+              0.3983
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.7765,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 0.025711,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "nswdemand",
+      "kind": "numeric",
+      "severity": "warning",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.1087,
+          "severity": "warning",
+          "p_value": 1.1182450049091151e-77,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0763,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10,
+            "noise_floor": 0.0027,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0667,
+              0.0906
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.1168,
+          "severity": "warning",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0219,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.1093,
+              0.1272
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.2709,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 0.157722,
+            "scale": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "column": "vicprice",
+      "kind": "numeric",
+      "severity": "warning",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.6323,
+          "severity": "warning",
+          "p_value": 0.0,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 1,
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.3945,
+          "severity": "warning",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 0.00456,
+            "scale": "pooled"
+          }
+        }
+      ]
+    },
+    {
+      "column": "vicdemand",
+      "kind": "numeric",
+      "severity": "critical",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.5339,
+          "severity": "warning",
+          "p_value": 0.0,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 1,
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 1.1931,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 0.108585,
+            "scale": "pooled"
+          }
+        }
+      ]
+    },
+    {
+      "column": "transfer",
+      "kind": "numeric",
+      "severity": "critical",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.7755,
+          "severity": "warning",
+          "p_value": 0.0,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 1,
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.0,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 1.3259,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 0.146362,
+            "scale": "pooled"
+          }
+        }
+      ]
+    },
+    {
+      "column": "day",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 1.3468,
+          "severity": "ok",
+          "p_value": 0.9690140287479949,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0002,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 7,
+            "n_categories_total": 7,
+            "noise_floor": 0.0022,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0003,
+              0.0025
+            ],
+            "underpowered": false
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0057,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "noise_floor": 0.02,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0067,
+              0.021
+            ],
+            "underpowered": false
+          }
+        }
+      ]
+    }
+  ],
+  "adversarial": {
+    "roc_auc": 1.0,
+    "severity": "critical",
+    "backend": "lightgbm",
+    "n_rows_used": 30000,
+    "top_features": [
+      {
+        "feature": "date",
+        "importance": 1.0
+      },
+      {
+        "feature": "nswdemand",
+        "importance": 0.0
+      },
+      {
+        "feature": "nswprice",
+        "importance": 0.0
+      },
+      {
+        "feature": "period",
+        "importance": 0.0
+      },
+      {
+        "feature": "vicprice",
+        "importance": 0.0
+      },
+      {
+        "feature": "transfer",
+        "importance": 0.0
+      },
+      {
+        "feature": "vicdemand",
+        "importance": 0.0
+      }
+    ],
+    "overlap_share": 0.0,
+    "note": ""
+  },
+  "meta": {
+    "generated_at": "2026-09-04T18:57:21+00:00",
+    "reference_rows": 15000,
+    "current_rows": 15000,
+    "numeric_columns": [
+      "date",
+      "period",
+      "nswprice",
+      "nswdemand",
+      "vicprice",
+      "vicdemand",
+      "transfer"
+    ],
+    "categorical_columns": [
+      "day"
+    ],
+    "skipped_columns": [],
+    "skipped_reasons": {},
+    "underpowered_columns": [],
+    "excluded_columns": [],
+    "insufficient_data": false,
+    "notes": [],
+    "segment_column": "day",
+    "segment_values_total": 7,
+    "target_column": "class",
+    "prediction_column": null,
+    "alpha_effective": 0.00625,
+    "config": {
+      "thresholds": {
+        "psi_warning": 0.1,
+        "psi_critical": 0.2,
+        "alpha": 0.05,
+        "js_warning": 0.1,
+        "js_critical": 0.2,
+        "wasserstein_warning": 0.3,
+        "wasserstein_critical": 0.5,
+        "adversarial_auc_warning": 0.55,
+        "adversarial_auc_critical": 0.65,
+        "missing_delta_warning": 0.05,
+        "missing_delta_critical": 0.15,
+        "out_of_range_warning": 0.01,
+        "out_of_range_critical": 0.05,
+        "new_category_warning": 0.01,
+        "new_category_critical": 0.05,
+        "duplicates_delta_warning": 0.05,
+        "duplicates_delta_critical": 0.15
+      },
+      "n_bins": 10,
+      "bonferroni": true,
+      "max_categories": 20,
+      "categorical_int_unique_limit": 10,
+      "min_samples": 20,
+      "sample_size_guard": true,
+      "bootstrap_samples": 200,
+      "noise_quantile": 0.99,
+      "identifier_unique_share": 0.98,
+      "identifier_min_rows": 100,
+      "adversarial_enabled": true,
+      "adversarial_max_rows": 50000,
+      "adversarial_n_jobs": null,
+      "random_state": 42,
+      "numeric_columns": null,
+      "categorical_columns": null,
+      "exclude_columns": null,
+      "target_column": "class",
+      "prediction_column": null,
+      "value_bounds": null,
+      "allowed_categories": null,
+      "segment_column": "day",
+      "max_segments": 8,
+      "segment_adversarial": false,
+      "column_thresholds": null
+    }
+  },
+  "target_drift": {
+    "column": "class",
+    "kind": "categorical",
+    "severity": "ok",
+    "tests": [
+      {
+        "name": "chi2",
+        "statistic": 10.0249,
+        "severity": "ok",
+        "p_value": 0.0015444063788417769,
+        "threshold": "p < 0.05 и размер эффекта >= warning",
+        "details": {
+          "significant": true
+        }
+      },
+      {
+        "name": "psi",
+        "statistic": 0.0013,
+        "severity": "ok",
+        "p_value": null,
+        "threshold": "warning >= 0.1, critical >= 0.2",
+        "details": {
+          "n_categories": 2,
+          "n_categories_total": 2,
+          "noise_floor": 0.0008,
+          "noise_quantile": 0.99,
+          "ci95": [
+            0.0002,
+            0.0033
+          ],
+          "underpowered": false
+        }
+      },
+      {
+        "name": "jensen_shannon",
+        "statistic": 0.0156,
+        "severity": "ok",
+        "p_value": null,
+        "threshold": "warning >= 0.1, critical >= 0.2",
+        "details": {
+          "noise_floor": 0.0118,
+          "noise_quantile": 0.99,
+          "ci95": [
+            0.0054,
+            0.0242
+          ],
+          "underpowered": false
+        }
+      }
+    ]
+  },
+  "prediction_drift": null,
+  "segments": [
+    {
+      "label": "1",
+      "rows": 2112,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 6,
+      "n_warning": 0,
+      "target_severity": "ok",
+      "adversarial_auc": null,
+      "alerts": [
+        "КРИТИЧНО: 100.0% значений 'date' вне диапазона эталона [0.000265, 0.433742].",
+        "ВНИМАНИЕ: 3.0% значений 'nswprice' вне диапазона эталона [0.018344, 0.299327].",
+        "КРИТИЧНО: 100.0% значений 'vicprice' вне диапазона эталона [0.003467, 0.003467].",
+        "КРИТИЧНО: 100.0% значений 'vicdemand' вне диапазона эталона [0.422915, 0.422915].",
+        "КРИТИЧНО: 100.0% значений 'transfer' вне диапазона эталона [0.414912, 0.414912].",
+        "КРИТИЧНО: дрейф по признаку 'date' — ks=1 (p<1e-16), psi=8.03, jensen_shannon=0.855, wasserstein_norm=4.55.",
+        "КРИТИЧНО: дрейф по признаку 'nswprice' — ks=0.539 (p<1e-16), psi=1.46, jensen_shannon=0.488, wasserstein_norm=0.986.",
+        "КРИТИЧНО: дрейф по признаку 'nswdemand' — ks=0.357 (p<1e-16), psi=0.641, jensen_shannon=0.333, wasserstein_norm=0.552.",
+        "КРИТИЧНО: дрейф по признаку 'vicprice' — ks=0.809 (p<1e-16), wasserstein_norm=0.973.",
+        "КРИТИЧНО: дрейф по признаку 'vicdemand' — ks=0.89 (p<1e-16), wasserstein_norm=1.51.",
+        "КРИТИЧНО: дрейф по признаку 'transfer' — ks=0.989 (p<1e-16), wasserstein_norm=1.76."
+      ],
+      "psi_by_column": {
+        "date": 8.0338,
+        "period": 0.0,
+        "nswprice": 1.4577,
+        "nswdemand": 0.6415,
+        "vicprice": 0.0,
+        "vicdemand": 0.0,
+        "transfer": 0.0
+      },
+      "severity_by_column": {
+        "date": "critical",
+        "period": "ok",
+        "nswprice": "critical",
+        "nswdemand": "critical",
+        "vicprice": "critical",
+        "vicdemand": "critical",
+        "transfer": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 2112,
+      "share_reference": 0.1408,
+      "share_current": 0.1408
+    },
+    {
+      "label": "2",
+      "rows": 2112,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 4,
+      "n_warning": 1,
+      "target_severity": "ok",
+      "adversarial_auc": null,
+      "alerts": [
+        "КРИТИЧНО: 100.0% значений 'date' вне диапазона эталона [0, 0.433786].",
+        "КРИТИЧНО: 100.0% значений 'vicprice' вне диапазона эталона [0.003467, 0.003467].",
+        "КРИТИЧНО: 100.0% значений 'vicdemand' вне диапазона эталона [0.422915, 0.422915].",
+        "КРИТИЧНО: 99.8% значений 'transfer' вне диапазона эталона [0.414912, 0.414912].",
+        "КРИТИЧНО: дрейф по признаку 'date' — ks=1 (p<1e-16), psi=8.08, jensen_shannon=0.857, wasserstein_norm=4.59.",
+        "КРИТИЧНО: дрейф по признаку 'nswprice' — ks=0.474 (p<1e-16), psi=1.28, jensen_shannon=0.458, wasserstein_norm=0.902.",
+        "ВНИМАНИЕ: дрейф по признаку 'nswdemand' — ks=0.113 (p=2.5e-12), psi=0.116, jensen_shannon=0.144.",
+        "КРИТИЧНО: дрейф по признаку 'vicdemand' — ks=0.6 (p<1e-16), wasserstein_norm=1.24.",
+        "КРИТИЧНО: дрейф по признаку 'transfer' — ks=0.74 (p<1e-16), wasserstein_norm=1.25."
+      ],
+      "psi_by_column": {
+        "date": 8.0796,
+        "period": 0.0,
+        "nswprice": 1.2783,
+        "nswdemand": 0.1164,
+        "vicprice": 0.0,
+        "vicdemand": 0.0,
+        "transfer": 0.0
+      },
+      "severity_by_column": {
+        "date": "critical",
+        "period": "ok",
+        "nswprice": "critical",
+        "nswdemand": "warning",
+        "vicprice": "ok",
+        "vicdemand": "critical",
+        "transfer": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 2160,
+      "share_reference": 0.144,
+      "share_current": 0.1408
+    },
+    {
+      "label": "3",
+      "rows": 2136,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 4,
+      "n_warning": 1,
+      "target_severity": "ok",
+      "adversarial_auc": null,
+      "alerts": [
+        "КРИТИЧНО: 100.0% значений 'date' вне диапазона эталона [4.4e-05, 0.43383].",
+        "КРИТИЧНО: 44.4% значений 'nswprice' вне диапазона эталона [0.040651, 0.32926].",
+        "КРИТИЧНО: 100.0% значений 'vicprice' вне диапазона эталона [0.003467, 0.003467].",
+        "КРИТИЧНО: 100.0% значений 'vicdemand' вне диапазона эталона [0.422915, 0.422915].",
+        "КРИТИЧНО: 99.9% значений 'transfer' вне диапазона эталона [0.414912, 0.414912].",
+        "КРИТИЧНО: дрейф по признаку 'date' — ks=1 (p<1e-16), psi=8.08, jensen_shannon=0.857, wasserstein_norm=4.38.",
+        "КРИТИЧНО: дрейф по признаку 'nswprice' — ks=0.442 (p<1e-16), psi=0.862, jensen_shannon=0.38, wasserstein_norm=0.672.",
+        "ВНИМАНИЕ: дрейф по признаку 'nswdemand' — ks=0.153 (p<1e-16), psi=0.115, jensen_shannon=0.144, wasserstein_norm=0.314.",
+        "КРИТИЧНО: дрейф по признаку 'vicdemand' — ks=0.701 (p<1e-16), wasserstein_norm=1.28.",
+        "КРИТИЧНО: дрейф по признаку 'transfer' — ks=0.695 (p<1e-16), wasserstein_norm=1.23."
+      ],
+      "psi_by_column": {
+        "date": 8.0796,
+        "period": 0.0001,
+        "nswprice": 0.8621,
+        "nswdemand": 0.1154,
+        "vicprice": 0.0,
+        "vicdemand": 0.0,
+        "transfer": 0.0
+      },
+      "severity_by_column": {
+        "date": "critical",
+        "period": "ok",
+        "nswprice": "critical",
+        "nswdemand": "warning",
+        "vicprice": "ok",
+        "vicdemand": "critical",
+        "transfer": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 2160,
+      "share_reference": 0.144,
+      "share_current": 0.1424
+    },
+    {
+      "label": "4",
+      "rows": 2160,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 5,
+      "n_warning": 1,
+      "target_severity": "ok",
+      "adversarial_auc": null,
+      "alerts": [
+        "КРИТИЧНО: 100.0% значений 'date' вне диапазона эталона [8.8e-05, 0.433875].",
+        "КРИТИЧНО: 40.8% значений 'nswprice' вне диапазона эталона [0.040231, 0.225351].",
+        "ВНИМАНИЕ: 1.2% значений 'nswdemand' вне диапазона эталона [0, 0.836358].",
+        "КРИТИЧНО: 100.0% значений 'vicprice' вне диапазона эталона [0.003467, 0.003467].",
+        "КРИТИЧНО: 100.0% значений 'vicdemand' вне диапазона эталона [0.422915, 0.422915].",
+        "КРИТИЧНО: 99.9% значений 'transfer' вне диапазона эталона [0.414912, 0.414912].",
+        "КРИТИЧНО: дрейф по признаку 'date' — ks=1 (p<1e-16), psi=8.08, jensen_shannon=0.857, wasserstein_norm=4.38.",
+        "КРИТИЧНО: дрейф по признаку 'nswprice' — ks=0.406 (p<1e-16), psi=0.796, jensen_shannon=0.365, wasserstein_norm=0.634.",
+        "ВНИМАНИЕ: дрейф по признаку 'nswdemand' — ks=0.132 (p<1e-16), jensen_shannon=0.132, wasserstein_norm=0.303.",
+        "КРИТИЧНО: дрейф по признаку 'vicprice' — ks=0.582 (p<1e-16), wasserstein_norm=0.946.",
+        "КРИТИЧНО: дрейф по признаку 'vicdemand' — ks=0.731 (p<1e-16), wasserstein_norm=1.28.",
+        "КРИТИЧНО: дрейф по признаку 'transfer' — ks=0.673 (p<1e-16), wasserstein_norm=1.21."
+      ],
+      "psi_by_column": {
+        "date": 8.0796,
+        "period": 0.0,
+        "nswprice": 0.7965,
+        "nswdemand": 0.0975,
+        "vicprice": 0.0,
+        "vicdemand": 0.0,
+        "transfer": 0.0
+      },
+      "severity_by_column": {
+        "date": "critical",
+        "period": "ok",
+        "nswprice": "critical",
+        "nswdemand": "warning",
+        "vicprice": "critical",
+        "vicdemand": "critical",
+        "transfer": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 2160,
+      "share_reference": 0.144,
+      "share_current": 0.144
+    },
+    {
+      "label": "5",
+      "rows": 2160,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 5,
+      "n_warning": 1,
+      "target_severity": "ok",
+      "adversarial_auc": null,
+      "alerts": [
+        "КРИТИЧНО: 100.0% значений 'date' вне диапазона эталона [0.000133, 0.433919].",
+        "КРИТИЧНО: 39.4% значений 'nswprice' вне диапазона эталона [0.040351, 0.194548].",
+        "ВНИМАНИЕ: 2.4% значений 'nswdemand' вне диапазона эталона [0.015323, 0.799464].",
+        "КРИТИЧНО: 100.0% значений 'vicprice' вне диапазона эталона [0.003467, 0.003467].",
+        "КРИТИЧНО: 100.0% значений 'vicdemand' вне диапазона эталона [0.422915, 0.422915].",
+        "КРИТИЧНО: 99.9% значений 'transfer' вне диапазона эталона [0.414912, 0.414912].",
+        "КРИТИЧНО: дрейф по признаку 'date' — ks=1 (p<1e-16), psi=8.08, jensen_shannon=0.857, wasserstein_norm=4.38.",
+        "КРИТИЧНО: дрейф по признаку 'nswprice' — ks=0.385 (p<1e-16), psi=0.724, jensen_shannon=0.349, wasserstein_norm=0.704.",
+        "ВНИМАНИЕ: дрейф по признаку 'nswdemand' — ks=0.175 (p<1e-16), psi=0.179, jensen_shannon=0.178, wasserstein_norm=0.389.",
+        "КРИТИЧНО: дрейф по признаку 'vicprice' — ks=0.551 (p<1e-16), wasserstein_norm=0.697.",
+        "КРИТИЧНО: дрейф по признаку 'vicdemand' — ks=0.733 (p<1e-16), wasserstein_norm=1.26.",
+        "КРИТИЧНО: дрейф по признаку 'transfer' — ks=0.66 (p<1e-16), wasserstein_norm=1.22."
+      ],
+      "psi_by_column": {
+        "date": 8.0796,
+        "period": 0.0,
+        "nswprice": 0.7241,
+        "nswdemand": 0.1794,
+        "vicprice": 0.0,
+        "vicdemand": 0.0,
+        "transfer": 0.0
+      },
+      "severity_by_column": {
+        "date": "critical",
+        "period": "ok",
+        "nswprice": "critical",
+        "nswdemand": "warning",
+        "vicprice": "critical",
+        "vicdemand": "critical",
+        "transfer": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 2160,
+      "share_reference": 0.144,
+      "share_current": 0.144
+    },
+    {
+      "label": "6",
+      "rows": 2160,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 6,
+      "n_warning": 0,
+      "target_severity": "ok",
+      "adversarial_auc": null,
+      "alerts": [
+        "КРИТИЧНО: 100.0% значений 'date' вне диапазона эталона [0.000177, 0.433963].",
+        "КРИТИЧНО: 42.6% значений 'nswprice' вне диапазона эталона [0.040351, 0.231116].",
+        "ВНИМАНИЕ: 3.4% значений 'nswdemand' вне диапазона эталона [0.026331, 0.766736].",
+        "КРИТИЧНО: 100.0% значений 'vicprice' вне диапазона эталона [0.003467, 0.003467].",
+        "КРИТИЧНО: 100.0% значений 'vicdemand' вне диапазона эталона [0.422915, 0.422915].",
+        "КРИТИЧНО: 99.8% значений 'transfer' вне диапазона эталона [0.414912, 0.414912].",
+        "КРИТИЧНО: дрейф по признаку 'date' — ks=1 (p<1e-16), psi=8.27, jensen_shannon=0.867, wasserstein_norm=4.45.",
+        "КРИТИЧНО: дрейф по признаку 'nswprice' — ks=0.423 (p<1e-16), psi=0.871, jensen_shannon=0.382, wasserstein_norm=0.781.",
+        "КРИТИЧНО: дрейф по признаку 'nswdemand' — ks=0.464 (p<1e-16), psi=1.25, jensen_shannon=0.45, wasserstein_norm=1.11.",
+        "КРИТИЧНО: дрейф по признаку 'vicprice' — ks=0.592 (p<1e-16), wasserstein_norm=0.905.",
+        "КРИТИЧНО: дрейф по признаку 'vicdemand' — ks=0.679 (p<1e-16), wasserstein_norm=1.24.",
+        "КРИТИЧНО: дрейф по признаку 'transfer' — ks=0.722 (p<1e-16), wasserstein_norm=1.23."
+      ],
+      "psi_by_column": {
+        "date": 8.2651,
+        "period": 0.0001,
+        "nswprice": 0.8707,
+        "nswdemand": 1.246,
+        "vicprice": 0.0,
+        "vicdemand": 0.0,
+        "transfer": 0.0
+      },
+      "severity_by_column": {
+        "date": "critical",
+        "period": "ok",
+        "nswprice": "critical",
+        "nswdemand": "critical",
+        "vicprice": "critical",
+        "vicdemand": "critical",
+        "transfer": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 2136,
+      "share_reference": 0.1424,
+      "share_current": 0.144
+    },
+    {
+      "label": "7",
+      "rows": 2160,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 6,
+      "n_warning": 0,
+      "target_severity": "ok",
+      "adversarial_auc": null,
+      "alerts": [
+        "КРИТИЧНО: 100.0% значений 'date' вне диапазона эталона [0.000221, 0.433698].",
+        "КРИТИЧНО: 43.9% значений 'nswprice' вне диапазона эталона [0.040231, 0.179596].",
+        "КРИТИЧНО: 100.0% значений 'vicprice' вне диапазона эталона [0.003467, 0.003467].",
+        "КРИТИЧНО: 100.0% значений 'vicdemand' вне диапазона эталона [0.422915, 0.422915].",
+        "КРИТИЧНО: 99.0% значений 'transfer' вне диапазона эталона [0.414912, 0.414912].",
+        "КРИТИЧНО: дрейф по признаку 'date' — ks=1 (p<1e-16), psi=8.03, jensen_shannon=0.855, wasserstein_norm=4.54.",
+        "КРИТИЧНО: дрейф по признаку 'nswprice' — ks=0.414 (p<1e-16), psi=1, jensen_shannon=0.41, wasserstein_norm=1.23.",
+        "КРИТИЧНО: дрейф по признаку 'nswdemand' — ks=0.33 (p<1e-16), psi=0.803, jensen_shannon=0.345, wasserstein_norm=0.698.",
+        "КРИТИЧНО: дрейф по признаку 'vicprice' — ks=0.661 (p<1e-16), wasserstein_norm=0.753.",
+        "КРИТИЧНО: дрейф по признаку 'vicdemand' — ks=0.825 (p<1e-16), wasserstein_norm=1.34.",
+        "КРИТИЧНО: дрейф по признаку 'transfer' — ks=0.953 (p<1e-16), wasserstein_norm=1.65."
+      ],
+      "psi_by_column": {
+        "date": 8.0338,
+        "period": 0.0,
+        "nswprice": 1.0008,
+        "nswdemand": 0.8029,
+        "vicprice": 0.0,
+        "vicdemand": 0.0,
+        "transfer": 0.0
+      },
+      "severity_by_column": {
+        "date": "critical",
+        "period": "ok",
+        "nswprice": "critical",
+        "nswdemand": "critical",
+        "vicprice": "critical",
+        "vicdemand": "critical",
+        "transfer": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 2112,
+      "share_reference": 0.1408,
+      "share_current": 0.144
+    }
+  ]
+}

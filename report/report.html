@@ -1763,6 +1763,85 @@ adversarial-модели метку через кросс-валидацию), �
 </tr>
 </tbody>
 </table>
+<h3 id="_5">Реальные данные</h3>
+<p>Синтетика не заменяет живых данных, поэтому система дополнительно прогнана на трёх открытых
+датасетах OpenML разной формы (<code>scripts/real_data_gallery.py</code>, отчёты в <code>examples/real/</code>).
+Случайный сплит adult — контроль на ложные тревоги: 14 признаков, 49 тысяч строк, вердикт
+«в норме», adversarial AUC 0.50. Батч «люди старше 50» на тех же данных — контролируемый
+ковариатный сдвиг: критично по возрасту, семейному положению и образованию при стабильной доле
+таргета. Малый credit-g (20 признаков, 700 против 300 строк) — «в норме» без шумных алертов.
+Начало против конца временного ряда electricity — настоящий дрейф: критично по ценам и спросу
+с разрезом по дням недели.</p>
+<p>Именно этот прогон нашёл два дефекта, невидимых на синтетике. В electricity несколько
+признаков в эталоне почти константны: PSI и JS вырождались в ноль, а расстояние Вассерштейна,
+нормированное на σ эталона, превращалось в число вида 4·10¹⁶, которое попадало в карточку.
+Теперь при константном эталоне сдвиг нормируется на разброс объединённой выборки («константа
+изменилась» даёт сдвиг около 2σ), карточка показывает долю значений вне диапазона и пишет
+«эталон почти константен». Второй дефект — колонка <code>date</code> (нормированное время) тривиально
+«дрейфует» и заслоняет остальные признаки; система теперь замечает непересекающиеся диапазоны
+и подсказывает исключить такую колонку, не глуша само обнаружение.</p>
+<p>Сгенерировано <code>scripts/real_data_gallery.py</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Кейс</th>
+<th>Строк (эталон / батч)</th>
+<th>Признаков</th>
+<th>Итог</th>
+<th>Признаки с дрейфом</th>
+<th>Таргет</th>
+<th>Adv. AUC</th>
+<th>Сегментов</th>
+<th>Время, с</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>adult: случайный сплит</td>
+<td>30000 / 18842</td>
+<td>14</td>
+<td>ok</td>
+<td>—</td>
+<td>ok</td>
+<td>0.50</td>
+<td>2</td>
+<td>2.1</td>
+</tr>
+<tr>
+<td>adult: батч — люди старше 50</td>
+<td>30000 / 9808</td>
+<td>14</td>
+<td>critical</td>
+<td>age, education-num, workclass, education, marital-status, occupation …</td>
+<td>ok</td>
+<td>1.00</td>
+<td>2</td>
+<td>1.2</td>
+</tr>
+<tr>
+<td>credit-g: 700 против 300 строк</td>
+<td>700 / 300</td>
+<td>20</td>
+<td>ok</td>
+<td>—</td>
+<td>ok</td>
+<td>0.52</td>
+<td>0</td>
+<td>0.2</td>
+</tr>
+<tr>
+<td>electricity: начало ряда против конца</td>
+<td>15000 / 15000</td>
+<td>8</td>
+<td>critical</td>
+<td>date, nswprice, nswdemand, vicprice, vicdemand, transfer</td>
+<td>ok</td>
+<td>1.00</td>
+<td>7</td>
+<td>1.5</td>
+</tr>
+</tbody>
+</table>
 <h2 id="9">9. Ограничения и развитие</h2>
 <ul>
 <li>Колонки типов datetime и строки с датами пропускаются; временные признаки нужно заранее
@@ -1787,17 +1866,19 @@ adversarial-модели метку через кросс-валидацию), �
 смещение метрик на малых. Метрики численно сверены с Evidently. Эксперименты на синтетических
 сценариях и реальном датасете подтверждают, что система различает типы дрейфа, объясняет их
 и не даёт ложных тревог на стабильных данных.</p>
-<h2 id="_5">Приложение А. Как воспроизвести</h2>
+<h2 id="_6">Приложение А. Как воспроизвести</h2>
 <pre><code class="language-bash">git clone https://github.com/dmagog/mts-shad-drift-guardian &amp;&amp; cd mts-shad-drift-guardian
 python -m venv .venv &amp;&amp; source .venv/bin/activate &amp;&amp; pip install -e &quot;.[dev]&quot;
 pytest -q                                          # тесты
 python scripts/experiments.py --out report         # эксперименты (раздел 6)
 uv venv .venv-bench &amp;&amp; uv pip install --python .venv-bench/bin/python evidently scikit-learn pyyaml scipy
 .venv-bench/bin/python scripts/benchmark_evidently.py --out report   # сверка (раздел 7)
+SSL_CERT_FILE=$(python -c &quot;import certifi; print(certifi.where())&quot;) \
+  python scripts/real_data_gallery.py              # реальные данные OpenML (раздел 8)
 python scripts/build_report.py                     # этот отчёт в HTML
 streamlit run app/streamlit_app.py                 # дашборд
 </code></pre>
-<h2 id="_6">Приложение Б. Соответствие требованиям ТЗ</h2>
+<h2 id="_7">Приложение Б. Соответствие требованиям ТЗ</h2>
 <table>
 <thead>
 <tr>

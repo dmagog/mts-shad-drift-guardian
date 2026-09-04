@@ -23,6 +23,7 @@ from .narrative import (
     CONCEPT_DRIFT_NOTE,
     HEADLINES,
     SPECIAL_TITLES,
+    card_metric,
     drifted_columns,
     explain_column,
     features_stable,
@@ -31,7 +32,7 @@ from .narrative import (
     fmt_p,
     hero_facts,
     issues_by_column,
-    psi_of,
+    plural,
     test_lines,
 )
 from .plots import (
@@ -117,7 +118,7 @@ _REPORT_BODY = Template(
 </table>{% else %}<p class="dg-note">Нет признаков для анализа.</p>{% endif %}
 {{ dist_section|safe }}
 {% for p in plots %}<details {% if p.open %}open{% endif %}><summary>{{ p.chip|safe }}<span>{{ p.column }}</span></summary>{{ p.html|safe }}</details>{% endfor %}
-{% if plots_skipped %}<p class="dg-note">Показаны {{ plots|length }} признаков; ещё {{ plots_skipped }} без изменений скрыто.</p>{% endif %}
+{% if plots_skipped %}<p class="dg-note">Показано {{ plots|length }} признаков; ещё {{ plots_skipped }} без изменений скрыто.</p>{% endif %}
 {{ adv_section|safe }}
 {{ adv_hero|safe }}
 {{ importance_html|safe }}
@@ -210,7 +211,7 @@ def render_html_report(
         return name in reference.columns and name in current.columns
 
     # 1. Карточки «что изменилось» (мини-графики).
-    drifted = [c for c in drifted_columns(report) if present(c["column"])][:6]
+    drifted = [c for c in drifted_columns(report) if present(c["column"])][:9]
     by_column = issues_by_column(report)
     card_figs = [
         compact_figure(_distribution_figure(c["kind"], reference[c["column"]], current[c["column"]]),
@@ -263,13 +264,8 @@ def render_html_report(
         config = DriftConfig()
     cards = []
     for c, html in zip(drifted, card_html, strict=True):
-        th = config.thresholds_for(c["column"])
-        cards.append(
-            {
-                "head": _card_head(c, by_column.get(c["column"], []), th.psi_warning, th.psi_critical),
-                "html": html,
-            }
-        )
+        issues = by_column.get(c["column"], [])
+        cards.append({"head": _card_head(c, issues, config.thresholds_for(c["column"])), "html": html})
     n_drifted = len(drifted_columns(report))
     changed_meta = f"{n_drifted} из {len(report.get('columns', []))} признаков" + (
         f", показаны {len(cards)}" if n_drifted > len(cards) else ""
@@ -345,7 +341,7 @@ def render_html_report(
             f"По сегментам «{meta.get('segment_column', '')}»",
             f"показаны {len(segments)} из {meta['segment_values_total']}"
             if meta.get("segment_values_total") and meta["segment_values_total"] > len(segments)
-            else f"{len(segments)} сегментов",
+            else plural(len(segments), "сегмент", "сегмента", "сегментов"),
         ),
         segments_html=segment_html[0] if segment_html else "",
         log_section=section("Журнал алертов", str(len(report.get("alerts", [])))),
@@ -357,13 +353,11 @@ def render_html_report(
     )
 
 
-def _card_head(col: dict, issues: list[dict], psi_warning: float, psi_critical: float) -> str:
+def _card_head(col: dict, issues: list[dict], thresholds) -> str:
     from .theme import card_head
 
-    return card_head(
-        col["column"], col["severity"], explain_column(col, issues), "PSI", psi_of(col),
-        psi_warning, psi_critical,
-    )
+    label, value, warn, crit = card_metric(col, issues, thresholds)
+    return card_head(col["column"], col["severity"], explain_column(col, issues), label, value, warn, crit)
 
 
 def save_html_report(

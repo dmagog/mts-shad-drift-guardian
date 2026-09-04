@@ -227,8 +227,16 @@ def analyze_numeric_column(
     cur_counts, _ = np.histogram(cur, bins=edges)
     tests = _effect_tests(ref_counts, cur_counts, config, {"n_bins": len(edges) - 1}, th)
 
+    # Нормировка на std эталона осмысленна, только если эталон не константен:
+    # при std ≈ 0 получались бы астрономические «сдвиги в σ».
+    # Если эталон константен (std ≈ 0), нормируем на разброс объединённой выборки:
+    # «константа изменилась» тогда даёт сдвиг около 2σ, а не астрономическое число.
     scale = float(np.std(ref))
-    if scale > 0:
+    tolerance = 1e-9 * max(1.0, float(np.abs(ref).max()), float(np.abs(cur).max()))
+    scale_kind = "reference"
+    if scale <= tolerance:
+        scale, scale_kind = float(np.std(np.concatenate([ref, cur]))), "pooled"
+    if scale > tolerance:
         wasserstein = float(stats.wasserstein_distance(ref, cur)) / scale
         tests.append(
             TestResult(
@@ -238,7 +246,7 @@ def analyze_numeric_column(
                 threshold=(
                     f"warning >= {th.wasserstein_warning}, critical >= {th.wasserstein_critical}"
                 ),
-                details={"scale_std": round(scale, 6)},
+                details={"scale_std": round(scale, 6), "scale": scale_kind},
             )
         )
 
