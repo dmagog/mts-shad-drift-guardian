@@ -91,6 +91,8 @@ class DriftReport:
     # Отдельные блоки: целевая переменная (концептуальный дрейф) и предсказания модели.
     target_drift: ColumnReport | None = None
     prediction_drift: ColumnReport | None = None
+    # Разрез по сегментам: сводка анализа внутри каждого значения segment_column.
+    segments: list[dict[str, Any]] | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)

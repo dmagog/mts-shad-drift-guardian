@@ -78,3 +78,15 @@ def test_load_csv_in_cp1251(tmp_path):
     frame = load_table(path)
     assert frame.shape == reference.shape
     assert "наёмный" in set(frame["employment_type"])
+
+
+def test_cli_segment_option(tmp_path):
+    reference, current = make_demo("mean_shift", 1500, 600, seed=13)
+    ref_path, cur_path = tmp_path / "ref.csv", tmp_path / "cur.csv"
+    reference.to_csv(ref_path, index=False)
+    current.to_csv(cur_path, index=False)
+    json_path = tmp_path / "report.json"
+    main(["-r", str(ref_path), "-c", str(cur_path), "--segment", "region", "--no-adversarial",
+          "--json", str(json_path), "-q"])
+    report = json.loads(json_path.read_text(encoding="utf-8"))
+    assert {s["label"] for s in report["segments"]} <= {"Москва", "Санкт-Петербург", "Миллионники", "Прочие"}

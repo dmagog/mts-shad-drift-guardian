@@ -41,6 +41,7 @@ from .plots import (
     compact_figure,
     feature_importance_figure,
     numeric_distribution_figure,
+    segment_heatmap_figure,
     severity_from_label,
     timeline_psi_figure,
     timeline_severity_figure,
@@ -100,6 +101,12 @@ _REPORT_BODY = Template(
 {% if cards %}<div class="dg-grid" style="grid-template-columns:repeat({{ grid_cols }},minmax(0,1fr))">{% for c in cards %}<div class="dg-card">{{ c.head|safe }}{{ c.html|safe }}</div>{% endfor %}</div>
 {% else %}{{ all_clear|safe }}{% endif %}
 {% for b in special %}{{ b.section|safe }}<div class="dg-two"><div>{{ b.html|safe }}</div><div>{{ b.list|safe }}{{ b.note|safe }}</div></div>{% endfor %}
+{% if segments %}{{ segments_section|safe }}
+<table>
+<thead><tr><th>Сегмент</th><th>Строк (эталон / батч)</th><th>Доля батча</th><th>Статус</th><th>Critical</th><th>Warning</th><th>Первый алерт</th></tr></thead>
+<tbody>{% for s in segments %}<tr><td>{{ s.label }}</td><td class="num">{{ s.rows_reference }} / {{ s.rows }}</td><td class="num">{{ s.share }}</td><td>{{ s.chip|safe }}</td><td class="num">{{ s.n_critical }}</td><td class="num">{{ s.n_warning }}</td><td>{{ s.first_alert }}</td></tr>{% endfor %}</tbody>
+</table>
+{{ segments_html|safe }}{% endif %}
 {% if issues_html %}{{ issues_section|safe }}{{ issues_html|safe }}{% endif %}
 {{ infos_note|safe }}
 {{ all_section|safe }}
@@ -231,12 +238,25 @@ def render_html_report(
     importance_figs = [feature_importance_figure(adversarial["top_features"], title=None)] \
         if adversarial and adversarial.get("top_features") else []
 
-    figures = [*card_figs, *special_figs, *plot_figs, *importance_figs]
-    heights = [150] * len(card_figs) + [300] * len(special_figs) + [340] * len(plot_figs) + [320] * len(importance_figs)
-    htmls = _figures_to_html(figures, plotlyjs, heights)
-    card_html, special_html, plot_html, importance_html = _split(
-        htmls, [len(card_figs), len(special_figs), len(plot_figs), len(importance_figs)]
+    segments_raw = report.get("segments") or []
+    segment_figs = [segment_heatmap_figure(segments_raw)] if segments_raw else []
+
+    figures = [*card_figs, *special_figs, *plot_figs, *importance_figs, *segment_figs]
+    heights = (
+        [150] * len(card_figs) + [300] * len(special_figs) + [340] * len(plot_figs)
+        + [320] * len(importance_figs) + [max(180, 70 + 34 * len(segments_raw))] * len(segment_figs)
     )
+    htmls = _figures_to_html(figures, plotlyjs, heights)
+    card_html, special_html, plot_html, importance_html, segment_html = _split(
+        htmls, [len(card_figs), len(special_figs), len(plot_figs), len(importance_figs), len(segment_figs)]
+    )
+    segments = [
+        {
+            **s, "chip": chip(s["overall_severity"]), "share": f"{s.get('share_current', 0):.0%}",
+            "first_alert": (s["alerts"][0] if s["alerts"] else s.get("recommendation", ""))[:120],
+        }
+        for s in segments_raw
+    ]
 
     cards = [
         {
@@ -315,6 +335,11 @@ def render_html_report(
         adv_section=section("Adversarial validation"),
         adv_hero=adv_hero,
         importance_html=importance_html[0] if importance_html else "",
+        segments=segments,
+        segments_section=section(
+            f"По сегментам «{meta.get('segment_column', '')}»", f"{len(segments)} сегментов"
+        ),
+        segments_html=segment_html[0] if segment_html else "",
         log_section=section("Журнал алертов", str(len(report.get("alerts", [])))),
         alerts_text="\n".join(report.get("alerts", [])) or "Алертов нет.",
     )

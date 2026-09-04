@@ -1,6 +1,7 @@
 """Оркестратор Data Drift Guardian: единая точка входа для полного анализа."""
 from __future__ import annotations
 
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -18,6 +19,7 @@ from .contracts import (
 from .data_quality import check_data_quality
 from .drift_engines import analyze_categorical_column, analyze_numeric_column
 from .schema import validate_schema
+from .summaries import summarize_period
 
 _RECOMMENDATIONS = {
     "ok": "Дрейф не обнаружен, модель можно эксплуатировать в штатном режиме.",
@@ -150,6 +152,17 @@ class DriftGuardian:
             schema_issues, quality_issues, column_reports, adversarial,
             target_drift, prediction_drift,
         )
+        segments = self._analyze_segments(reference, current, schema_issues)
+        critical_segments = [s for s in (segments or []) if s["overall_severity"] == "critical"]
+        for segment in critical_segments:
+            drifted = [c for c, sev in segment["severity_by_column"].items() if sev == "critical"]
+            alerts.append(
+                f"КРИТИЧНО: в сегменте {cfg.segment_column}={segment['label']} "
+                f"критический дрейф по признакам: {', '.join(map(str, drifted)) or 'см. разбор сегмента'}."
+            )
+        if critical_segments:
+            overall = worst([overall, "warning"])
+
         feature_worst = worst(
             [*(i.severity for i in quality_issues), *(c.severity for c in column_reports)]
         )
@@ -179,6 +192,12 @@ class DriftGuardian:
                 f"Дрейф не обнаружен, но батч мал ({len(current)} строк): чувствительность PSI и JS "
                 "снижена, пороги подняты до шумового уровня."
             )
+        elif critical_segments and feature_worst != "critical":
+            names = ", ".join(f"{cfg.segment_column}={s['label']}" for s in critical_segments[:3])
+            recommendation = (
+                f"В объединённых данных дрейф умеренный, но внутри сегментов ({names}) он критический: "
+                "проверьте данные и качество модели для этих сегментов."
+            )
         else:
             recommendation = _RECOMMENDATIONS[overall]
 
@@ -194,6 +213,7 @@ class DriftGuardian:
             "excluded_columns": sorted(excluded),
             "insufficient_data": insufficient,
             "notes": notes,
+            "segment_column": cfg.segment_column if segments is not None else None,
             "target_column": cfg.target_column,
             "prediction_column": cfg.prediction_column,
             "alpha_effective": alpha_effective,
@@ -210,7 +230,53 @@ class DriftGuardian:
             meta=meta,
             target_drift=target_drift,
             prediction_drift=prediction_drift,
+            segments=segments,
         )
+
+    def _analyze_segments(
+        self, reference: pd.DataFrame, current: pd.DataFrame, schema_issues: list[Issue]
+    ) -> list[dict] | None:
+        """Повторяет анализ внутри каждого из самых частых значений segment_column."""
+        cfg = self.config
+        column = cfg.segment_column
+        if not column:
+            return None
+        if column not in reference.columns or column not in current.columns:
+            schema_issues.append(
+                Issue(
+                    check="segment_column_missing", severity="warning", column=column,
+                    message=f"Колонка сегментов '{column}' отсутствует в одной из выборок — разрез пропущен.",
+                )
+            )
+            return None
+        values = list(reference[column].value_counts(dropna=True).index[: cfg.max_segments])
+        sub_config = replace(
+            cfg,
+            segment_column=None,
+            adversarial_enabled=cfg.adversarial_enabled and cfg.segment_adversarial,
+            exclude_columns=[*(cfg.exclude_columns or []), column],
+        )
+        guardian = DriftGuardian(sub_config)
+        n_ref, n_cur = max(len(reference), 1), max(len(current), 1)
+        segments: list[dict] = []
+        for value in values:
+            ref_part = reference[reference[column] == value]
+            cur_part = current[current[column] == value]
+            if cur_part.empty:
+                summary = {
+                    "label": str(value), "rows": 0, "overall_severity": "warning",
+                    "recommendation": "Сегмент отсутствует в текущем батче.",
+                    "n_critical": 0, "n_warning": 0, "target_severity": None, "adversarial_auc": None,
+                    "alerts": [], "psi_by_column": {}, "severity_by_column": {},
+                    "insufficient": True, "vs_previous": None,
+                }
+            else:
+                summary = asdict(summarize_period(str(value), guardian.run(ref_part, cur_part), len(cur_part)))
+            summary["rows_reference"] = int(len(ref_part))
+            summary["share_reference"] = round(len(ref_part) / n_ref, 4)
+            summary["share_current"] = round(len(cur_part) / n_cur, 4)
+            segments.append(summary)
+        return segments
 
     def _analyze_special(
         self,

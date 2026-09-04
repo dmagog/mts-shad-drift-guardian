@@ -59,6 +59,8 @@ from drift_guardian.plots import (  # noqa: E402
     feature_importance_figure,
     issues_frame,
     numeric_distribution_figure,
+    segment_frame,
+    segment_heatmap_figure,
     style_severity,
     timeline_frame,
     timeline_psi_figure,
@@ -224,6 +226,7 @@ def sidebar() -> dict:
         )
 
     target_column = None
+    segment_column = None
     exclude_columns: list[str] = []
     if reference is not None:
         st.sidebar.markdown("### Роли колонок")
@@ -237,6 +240,16 @@ def sidebar() -> dict:
             "Исключить из анализа", [c for c in columns if c != target_column],
             placeholder="идентификаторы, даты…", format_func=str,
         )
+        segment_candidates = [
+            c for c in columns
+            if c != target_column and c not in exclude_columns
+            and 2 <= reference[c].nunique(dropna=True) <= 12
+        ]
+        segment_choice = st.sidebar.selectbox(
+            "Разрез по сегментам", [NO_TARGET, *segment_candidates], format_func=str,
+            help="Анализ повторяется внутри каждого значения колонки: где именно поплыло.",
+        )
+        segment_column = None if isinstance(segment_choice, str) and segment_choice == NO_TARGET else segment_choice
 
     with st.sidebar.expander("Пороги и параметры"):
         psi_warning = st.slider("PSI, внимание", 0.01, 0.50, 0.10, 0.01)
@@ -255,6 +268,7 @@ def sidebar() -> dict:
     config = DriftConfig(
         thresholds=thresholds, bonferroni=bonferroni, adversarial_enabled=adversarial_on,
         sample_size_guard=guard, target_column=target_column, exclude_columns=exclude_columns or None,
+        segment_column=segment_column,
     )
     ui.footer()
     return {
@@ -347,6 +361,24 @@ def render_special_blocks(report: dict, reference: pd.DataFrame, current: pd.Dat
             ui.issue_list(test_lines(block))
             if key == "target_drift" and block["severity"] == "critical" and feature_ok:
                 ui.note(CONCEPT_DRIFT_NOTE)
+
+
+def render_segments(report: dict, key_prefix: str) -> None:
+    segments = report.get("segments")
+    if not segments:
+        return
+    column = report["meta"].get("segment_column")
+    n_bad = sum(s["overall_severity"] != "ok" for s in segments)
+    ui.section(f"По сегментам «{column}»", f"{len(segments)} сегментов, с дрейфом: {n_bad}")
+    left, right = st.columns([2, 3])
+    frame = segment_frame(segments)
+    frame["доля батча"] = (frame["доля батча"] * 100).round(0)
+    left.dataframe(
+        style_severity(frame), width="stretch", hide_index=True,
+        column_config={"доля батча": st.column_config.NumberColumn(format="%d %%")},
+    )
+    right.plotly_chart(segment_heatmap_figure(segments), width="stretch", theme=None,
+                       key=f"{key_prefix}-segments")
 
 
 def render_issues(report: dict) -> None:
@@ -491,6 +523,7 @@ def render_batch(report: dict, reference: pd.DataFrame, current: pd.DataFrame, c
     ui.hero(report["overall_severity"], headline, report["recommendation"], hero_facts(report))
     what_changed(report, reference, current, config, key_prefix)
     render_special_blocks(report, reference, current, key_prefix)
+    render_segments(report, key_prefix)
     render_issues(report)
     render_details(report, reference, current, config, timeline, key_prefix)
 

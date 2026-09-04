@@ -156,3 +156,33 @@ def test_small_batch_ok_mentions_low_sensitivity():
     assert report["overall_severity"] == "ok"
     assert report["meta"]["insufficient_data"] is False
     assert "мал" in report["recommendation"]
+
+
+def test_segment_drift_is_localized_and_surfaced():
+    reference, current = make_demo("no_drift", 8000, 3000, seed=50)
+    current = current.copy()
+    mask = current["region"] == "Москва"
+    current.loc[mask, "age"] = np.clip(current.loc[mask, "age"] + 10, 18, 85)
+    config = DriftConfig(target_column="target", segment_column="region", adversarial_enabled=False)
+    report = analyze(reference, current, config)
+    by_label = {s["label"]: s for s in report["segments"]}
+    assert by_label["Москва"]["overall_severity"] == "critical"
+    assert all(s["overall_severity"] == "ok" for label, s in by_label.items() if label != "Москва")
+    assert report["overall_severity"] in ("warning", "critical")
+    assert any("region=Москва" in alert for alert in report["alerts"])
+    assert "region" not in by_label["Москва"]["psi_by_column"]  # внутри сегмента колонка константна
+
+
+def test_segment_absent_in_current_batch_is_flagged():
+    reference, current = make_demo("no_drift", 4000, 2000, seed=51)
+    current = current[current["region"] != "Санкт-Петербург"]
+    report = analyze(reference, current, DriftConfig(segment_column="region", adversarial_enabled=False))
+    spb = next(s for s in report["segments"] if s["label"] == "Санкт-Петербург")
+    assert spb["rows"] == 0 and spb["overall_severity"] == "warning" and spb["insufficient"] is True
+
+
+def test_missing_segment_column_is_reported():
+    reference, current = make_demo("no_drift", 1000, 500, seed=52)
+    report = analyze(reference, current, DriftConfig(segment_column="nope", adversarial_enabled=False))
+    assert report["segments"] is None
+    assert any(i["check"] == "segment_column_missing" for i in report["schema"])

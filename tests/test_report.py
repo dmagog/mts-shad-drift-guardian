@@ -111,3 +111,17 @@ def test_timeline_figures_and_html():
     assert list(timeline_frame(timeline)["период"]) == ["2026-01", "2026-02", "2026-03"]
     html = render_timeline_html(timeline, plotlyjs="cdn")
     assert "2026-03" in html and "Статус по периодам" in html
+
+
+def test_segment_heatmap_and_html_section():
+    from drift_guardian import DriftConfig
+    from drift_guardian.plots import segment_frame, segment_heatmap_figure
+
+    ref, cur = make_demo("mixed", ref_rows=3000, cur_rows=1000, seed=3)
+    report = analyze(ref, cur, DriftConfig(target_column="target", segment_column="region"))
+    fig = segment_heatmap_figure(report["segments"])
+    assert fig.data[0].type == "heatmap"
+    assert len(fig.data[0].y) == len(report["segments"])
+    assert list(segment_frame(report["segments"]).columns)[0] == "сегмент"
+    html = render_html_report(report, ref, cur, plotlyjs="cdn")
+    assert "По сегментам" in html

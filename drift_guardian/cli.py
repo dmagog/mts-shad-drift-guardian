@@ -37,6 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--target", help="колонка целевой переменной")
     parser.add_argument("--prediction", help="колонка предсказаний модели")
     parser.add_argument("--exclude", nargs="*", default=None, help="колонки, исключаемые из анализа")
+    parser.add_argument("--segment", help="разрез по сегментам: категориальная колонка (регион, канал…)")
     parser.add_argument("--no-adversarial", action="store_true", help="отключить adversarial validation")
     parser.add_argument("--date-column", help="режим потока: колонка даты для разбиения на периоды")
     parser.add_argument("--freq", default="M", choices=sorted(FREQ_LABELS), help="период потока: D, W, M, Q")
@@ -106,6 +107,8 @@ def main(argv: list[str] | None = None) -> int:
         config.prediction_column = args.prediction
     if args.exclude is not None:
         config.exclude_columns = list(args.exclude)
+    if args.segment:
+        config.segment_column = args.segment
     if args.no_adversarial:
         config.adversarial_enabled = False
 

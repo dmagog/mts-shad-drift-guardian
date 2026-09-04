@@ -330,3 +330,60 @@ def compact_figure(fig: go.Figure, height: int = 150, categorical: bool = False)
                      showticklabels=not categorical)
     fig.update_yaxes(title_text=None, visible=False)
     return fig
+
+
+# ---------- сегменты ----------
+
+_SEQUENTIAL_BLUE = [
+    [0.0, "#f0efec"], [0.2, "#cde2fb"], [0.45, "#86b6ef"], [0.7, "#2a78d6"], [1.0, "#104281"],
+]
+
+
+def segment_heatmap_figure(
+    segments: list[dict], max_columns: int = 12, title: str | None = None
+) -> go.Figure:
+    """Тепловая карта PSI «сегмент × признак»: один оттенок, светлее — ближе к нулю."""
+    columns: dict[str, float] = {}
+    for segment in segments:
+        for column, value in segment.get("psi_by_column", {}).items():
+            columns[column] = max(columns.get(column, 0.0), float(value))
+    top = sorted(columns, key=columns.get, reverse=True)[:max_columns]
+    labels = [str(s["label"]) for s in segments]
+    z = [[s.get("psi_by_column", {}).get(col) for col in top] for s in segments]
+    zmax = max(0.3, max((v for row in z for v in row if v is not None), default=0.3))
+    fig = go.Figure(
+        go.Heatmap(
+            z=z, x=[str(c) for c in top], y=labels,
+            colorscale=_SEQUENTIAL_BLUE, zmin=0, zmax=zmax,
+            text=[[f"{v:.2f}" if v is not None else "" for v in row] for row in z],
+            texttemplate="%{text}", textfont=dict(size=11),
+            xgap=2, ygap=2, colorbar=dict(title="PSI", thickness=12, len=0.9),
+            hovertemplate="сегмент %{y}<br>%{x}: PSI %{z:.3f}<extra></extra>",
+        )
+    )
+    _apply_layout(fig, title, "", "")
+    fig.update_layout(
+        height=max(180, 70 + 34 * len(labels)), hovermode="closest",
+        margin=dict(l=8, r=8, t=30 if title else 8, b=8),
+    )
+    fig.update_xaxes(showgrid=False, side="top", tickfont=dict(size=11))
+    fig.update_yaxes(showgrid=False, autorange="reversed")
+    return fig
+
+
+def segment_frame(segments: list[dict]) -> pd.DataFrame:
+    """Таблица по сегментам для дашборда и отчёта."""
+    rows = []
+    for s in segments:
+        rows.append(
+            {
+                "сегмент": s["label"],
+                "строк (эталон / батч)": f"{s.get('rows_reference', 0)} / {s['rows']}",
+                "доля батча": s.get("share_current", 0.0),
+                "статус": STATUS_LABELS[s["overall_severity"]],
+                "critical": s["n_critical"],
+                "warning": s["n_warning"],
+                "первый алерт": (s["alerts"][0] if s["alerts"] else s.get("recommendation", ""))[:120],
+            }
+        )
+    return pd.DataFrame(rows)

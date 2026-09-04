@@ -94,6 +94,11 @@ class DriftConfig:
     value_bounds: dict[str, tuple[float, float]] | None = None
     # Допустимые категории по контракту; если не заданы — множество категорий эталона.
     allowed_categories: dict[str, list[Any]] | None = None
+    # Разрез по сегментам: категориальная колонка (регион, канал, тариф…). Для каждого
+    # из ``max_segments`` самых частых значений эталона анализ повторяется внутри сегмента.
+    segment_column: str | None = None
+    max_segments: int = 8
+    segment_adversarial: bool = False
 
     def to_dict(self) -> dict:
         return asdict(self)
