@@ -111,10 +111,15 @@ def run_stream(reference: pd.DataFrame, stream: pd.DataFrame, date_column: str, 
                         DriftConfig.from_dict(config_dict))
 
 
-def distribution_figure(kind: str, reference: pd.Series, current: pd.Series, title: str | None):
+def distribution_figure(kind: str, reference: pd.Series, current: pd.Series, title: str | None,
+                        height: int | None = None):
     if kind == "numeric":
-        return numeric_distribution_figure(reference, current, title=title)
-    return categorical_distribution_figure(reference, current, title=title)
+        fig = numeric_distribution_figure(reference, current, title=title)
+    else:
+        fig = categorical_distribution_figure(reference, current, title=title)
+    if height:
+        fig.update_layout(height=height)
+    return fig
 
 
 def tests_frame(tests: list[dict]) -> pd.DataFrame:
@@ -295,7 +300,7 @@ def render_focus(report: dict, reference: pd.DataFrame, current: pd.DataFrame, k
             st.rerun()
         left, right = st.columns([3, 2])
         left.plotly_chart(
-            distribution_figure(col["kind"], reference[name], current[name], None),
+            distribution_figure(col["kind"], reference[name], current[name], None, height=320),
             width="stretch", theme=None, key=f"{key_prefix}-focus-{name}",
         )
         with right:
@@ -318,7 +323,7 @@ def render_special_blocks(report: dict, reference: pd.DataFrame, current: pd.Dat
         ui.section(f"{title} «{column}»", STATUS_LABELS[block["severity"]])
         left, right = st.columns([3, 2])
         left.plotly_chart(
-            distribution_figure(block["kind"], reference[column], current[column], None),
+            distribution_figure(block["kind"], reference[column], current[column], None, height=300),
             width="stretch", theme=None, key=f"{key_prefix}-{key}",
         )
         with right:
@@ -369,7 +374,7 @@ def render_distributions_tab(report: dict, reference: pd.DataFrame, current: pd.
     )
     col_report = next(c for c in report["columns"] if c["column"] == column)
     st.plotly_chart(
-        distribution_figure(col_report["kind"], reference[column], current[column], None),
+        distribution_figure(col_report["kind"], reference[column], current[column], None, height=360),
         width="stretch", theme=None, key=f"{key_prefix}-dist-{column}",
     )
     st.dataframe(style_severity(tests_frame(col_report["tests"])), width="stretch",

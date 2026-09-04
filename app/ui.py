@@ -13,7 +13,8 @@ from drift_guardian import theme
 from drift_guardian.plots import compact_figure
 
 STREAMLIT_CSS = """
-.block-container{padding-top:1.4rem;padding-bottom:3rem;max-width:1240px}
+.block-container{padding-top:1.4rem;padding-bottom:40vh;max-width:1240px}
+div[data-baseweb="tab-panel"]{min-height:620px}
 [data-testid="stSidebar"] h2,[data-testid="stSidebar"] h3{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dg-ink2);margin:.9rem 0 .2rem}
 [data-testid="stSidebar"] [data-testid="stCaptionContainer"]{line-height:1.35}
 div[data-testid="stVerticalBlockBorderWrapper"]{background:var(--dg-surface)}

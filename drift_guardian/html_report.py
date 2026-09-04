@@ -219,7 +219,7 @@ def render_html_report(
         if adversarial and adversarial.get("top_features") else []
 
     figures = [*card_figs, *special_figs, *plot_figs, *importance_figs]
-    heights = [150] * len(card_figs) + [340] * len(special_figs) + [340] * len(plot_figs) + [320] * len(importance_figs)
+    heights = [150] * len(card_figs) + [300] * len(special_figs) + [340] * len(plot_figs) + [320] * len(importance_figs)
     htmls = _figures_to_html(figures, plotlyjs, heights)
     card_html, special_html, plot_html, importance_html = _split(
         htmls, [len(card_figs), len(special_figs), len(plot_figs), len(importance_figs)]
