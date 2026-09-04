@@ -35,3 +35,13 @@ def test_dashboard_timeline_mode_runs():
     assert not app.exception, [e.value for e in app.exception]
     assert any("Динамика по периодам" in m.value for m in app.markdown)
     assert len(app.get("plotly_chart")) >= 3  # статусы, PSI по периодам, детализация
+
+
+def test_feature_card_opens_detail_panel():
+    app = _run_app()
+    open_buttons = [b for b in app.button if b.label == "Подробнее"]
+    assert open_buttons, "у карточек признаков должна быть кнопка «Подробнее»"
+    open_buttons[0].click().run()
+    assert not app.exception, [e.value for e in app.exception]
+    markdown = " ".join(m.value for m in app.markdown)
+    assert "Признак «" in markdown

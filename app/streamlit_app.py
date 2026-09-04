@@ -34,8 +34,24 @@ from drift_guardian.html_report import (  # noqa: E402
     render_timeline_html,
     report_to_json,
 )
+from drift_guardian.narrative import (  # noqa: E402
+    CHECK_LABELS,
+    CONCEPT_DRIFT_NOTE,
+    HEADLINES,
+    SPECIAL_TITLES,
+    drifted_columns,
+    explain_column,
+    features_stable,
+    fmt_int,
+    fmt_num,
+    fmt_p,
+    grid_rows,
+    hero_facts,
+    issues_by_column,
+    psi_of,
+    test_lines,
+)
 from drift_guardian.plots import (  # noqa: E402
-    SEVERITY_RANK,
     STATUS_LABELS,
     categorical_distribution_figure,
     column_summary_frame,
@@ -61,15 +77,6 @@ TIMELINE_FORMATS = {"adversarial AUC": st.column_config.NumberColumn(format="%.3
 FILE_TYPES = ["csv", "parquet", "pq"]
 NO_TARGET = "нет"
 MODE_PAIR, MODE_STREAM = "Два батча", "Временной ряд"
-HEADLINES = {"ok": "Дрейф не обнаружен", "warning": "Умеренный дрейф", "critical": "Критический дрейф"}
-CHECK_LABELS = {
-    "missing_values": "пропуски", "duplicates": "дубликаты", "out_of_range": "диапазон",
-    "new_categories": "категории", "constant_column": "константа", "missing_column": "схема",
-    "extra_column": "схема", "dtype_mismatch": "схема", "column_skipped": "пропущено",
-    "small_batch": "малый батч", "target_column_missing": "таргет",
-    "prediction_column_missing": "предсказания",
-}
-SPECIAL_TITLES = {"target_drift": "Целевая переменная", "prediction_drift": "Предсказания модели"}
 
 
 # ---------- данные и расчёт (кэшируются) ----------
@@ -104,24 +111,10 @@ def run_stream(reference: pd.DataFrame, stream: pd.DataFrame, date_column: str, 
                         DriftConfig.from_dict(config_dict))
 
 
-def fmt_int(value: int) -> str:
-    return f"{value:,}".replace(",", " ")
-
-
 def distribution_figure(kind: str, reference: pd.Series, current: pd.Series, title: str | None):
     if kind == "numeric":
         return numeric_distribution_figure(reference, current, title=title)
     return categorical_distribution_figure(reference, current, title=title)
-
-
-def fmt_p(value) -> str:
-    if value is None or pd.isna(value):
-        return "—"
-    return "p < 1e-16" if value < 1e-16 else f"p = {value:.2g}"
-
-
-def fmt_num(value, digits: int = 3) -> str:
-    return "—" if value is None or pd.isna(value) else f"{value:.{digits}f}"
 
 
 def tests_frame(tests: list[dict]) -> pd.DataFrame:
@@ -251,58 +244,9 @@ def sidebar() -> dict:
 
 # ---------- вердикт и «что изменилось» ----------
 
-def hero_facts(report: dict) -> list[tuple[str, str]]:
-    meta = report["meta"]
-    n_cols = len(report["columns"])
-    n_drifted = sum(c["severity"] != "ok" for c in report["columns"])
-    n_quality = sum(i["severity"] != "ok" for i in [*report["schema"], *report["data_quality"]])
-    adversarial = report.get("adversarial")
-    facts = [
-        (" признаков с дрейфом", f"{n_drifted} из {n_cols}"),
-        (" замечаний к данным", str(n_quality)),
-        (" adversarial AUC", f"{adversarial['roc_auc']:.2f}" if adversarial else "выкл."),
-        (" строк: эталон / батч", f"{fmt_int(meta['reference_rows'])} / {fmt_int(meta['current_rows'])}"),
-    ]
-    target = report.get("target_drift")
-    if target:
-        facts.insert(1, (" целевая переменная", STATUS_LABELS[target["severity"]]))
-    return facts
-
-
-def explain_column(col: dict, issues: list[dict]) -> str:
-    tests = {t["name"]: t for t in col["tests"]}
-    parts: list[str] = []
-    if col["kind"] == "numeric":
-        w = tests.get("wasserstein_norm", {}).get("statistic")
-        if w is not None and w >= 0.1:
-            parts.append(f"сдвиг на {w:.2f}σ")
-    for issue in issues:
-        value = issue.get("value") or 0.0
-        if issue["check"] == "missing_values":
-            parts.append(f"пропусков +{value * 100:.0f} п.п.")
-        elif issue["check"] == "out_of_range":
-            parts.append(f"{value:.0%} значений вне диапазона")
-        elif issue["check"] == "new_categories":
-            parts.append(f"новые категории у {value:.0%} строк")
-        elif issue["check"] == "constant_column":
-            parts.append("стала константой")
-    if not parts:
-        js = tests.get("jensen_shannon", {}).get("statistic")
-        base = "изменились доли категорий" if col["kind"] == "categorical" else "изменилась форма распределения"
-        parts.append(f"{base} (JS {js:.2f})" if js is not None else base)
-    if any(t.get("details", {}).get("underpowered") for t in col["tests"]):
-        parts.append("батч мал")
-    text = ", ".join(parts)
-    return text[0].upper() + text[1:]
-
-
 def what_changed(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
                  config: DriftConfig, key_prefix: str = "pair") -> None:
-    drifted = sorted(
-        (c for c in report["columns"] if c["severity"] != "ok"),
-        key=lambda c: (SEVERITY_RANK[c["severity"]],
-                       -next((t["statistic"] for t in c["tests"] if t["name"] == "psi"), 0.0)),
-    )
+    drifted = drifted_columns(report)
     total = len(report["columns"])
     if not drifted:
         ui.section("Что изменилось")
@@ -311,31 +255,61 @@ def what_changed(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
     shown = drifted[:6]
     meta = f"{len(drifted)} из {total} признаков" + (f", показаны {len(shown)}" if len(drifted) > len(shown) else "")
     ui.section("Что изменилось", meta)
-    issues_by_column: dict[str, list[dict]] = {}
-    for issue in report["data_quality"]:
-        if issue.get("column") and issue["severity"] != "ok":
-            issues_by_column.setdefault(issue["column"], []).append(issue)
-    for row_start in range(0, len(shown), 3):
-        row = shown[row_start:row_start + 3]
-        cells = st.columns(3)
-        for cell, col in zip(cells, row, strict=False):
+    by_column = issues_by_column(report)
+    focus_key = f"{key_prefix}-focus"
+    index = 0
+    for size in grid_rows(len(shown)):
+        cells = st.columns(2 if size == 1 else size)  # одиночная карточка не растягивается на всю ширину
+        for cell, col in zip(cells, shown[index:index + size], strict=False):
             name = col["column"]
-            psi = next((t["statistic"] for t in col["tests"] if t["name"] == "psi"), 0.0)
             with cell, st.container(border=True):
                 ui.feature_card_head(
-                    name, col["severity"], explain_column(col, issues_by_column.get(name, [])),
-                    "PSI", psi, config.thresholds.psi_warning, config.thresholds.psi_critical,
+                    name, col["severity"], explain_column(col, by_column.get(name, [])),
+                    "PSI", psi_of(col), config.thresholds.psi_warning, config.thresholds.psi_critical,
                 )
                 fig = ui.compact(
                     distribution_figure(col["kind"], reference[name], current[name], None),
                     categorical=col["kind"] == "categorical",
                 )
                 st.plotly_chart(fig, width="stretch", theme=None, key=f"{key_prefix}-mini-{name}")
+                if st.button("Подробнее", key=f"{key_prefix}-open-{name}", type="tertiary"):
+                    st.session_state[focus_key] = name
+        index += size
+    render_focus(report, reference, current, key_prefix)
+
+
+def render_focus(report: dict, reference: pd.DataFrame, current: pd.DataFrame, key_prefix: str) -> None:
+    """Панель выбранного признака под сеткой: полный график, тесты, замечания к качеству."""
+    focus_key = f"{key_prefix}-focus"
+    name = st.session_state.get(focus_key)
+    columns = {c["column"]: c for c in report["columns"]}
+    if not name or name not in columns:
+        return
+    col = columns[name]
+    with st.container(border=True):
+        head, close = st.columns([6, 1])
+        with head:
+            ui.heading(f"Признак «{name}»", col["severity"])
+        if close.button("Скрыть", key=f"{key_prefix}-close", type="tertiary"):
+            st.session_state.pop(focus_key, None)
+            st.rerun()
+        left, right = st.columns([3, 2])
+        left.plotly_chart(
+            distribution_figure(col["kind"], reference[name], current[name], None),
+            width="stretch", theme=None, key=f"{key_prefix}-focus-{name}",
+        )
+        with right:
+            ui.issue_list(test_lines(col))
+            quality = issues_by_column(report).get(name, [])
+            if quality:
+                ui.issue_list([(i["severity"], i["message"], CHECK_LABELS.get(i["check"], i["check"])) for i in quality])
+            if any(t.get("details", {}).get("underpowered") for t in col["tests"]):
+                ui.note("Батч мал для надёжной оценки PSI и JS: порог warning поднят до шумового уровня.")
 
 
 def render_special_blocks(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
                           key_prefix: str) -> None:
-    feature_ok = all(c["severity"] != "critical" for c in report["columns"])
+    feature_ok = features_stable(report)
     for key, title in SPECIAL_TITLES.items():
         block = report.get(key)
         if not block:
@@ -348,20 +322,9 @@ def render_special_blocks(report: dict, reference: pd.DataFrame, current: pd.Dat
             width="stretch", theme=None, key=f"{key_prefix}-{key}",
         )
         with right:
-            ui.issue_list([
-                (
-                    t["severity"],
-                    f"{t['name']}: {t['statistic']:.4g}"
-                    + (f", {fmt_p(t['p_value'])}" if t["p_value"] is not None else ""),
-                    STATUS_LABELS[t["severity"]],
-                )
-                for t in block["tests"] if t["name"] != "skipped"
-            ])
+            ui.issue_list(test_lines(block))
             if key == "target_drift" and block["severity"] == "critical" and feature_ok:
-                ui.note(
-                    "Признаки стабильны, а целевая переменная изменилась: вероятен концептуальный "
-                    "дрейф, то есть изменилась связь между признаками и целью."
-                )
+                ui.note(CONCEPT_DRIFT_NOTE)
 
 
 def render_issues(report: dict) -> None:
@@ -398,8 +361,10 @@ def render_distributions_tab(report: dict, reference: pd.DataFrame, current: pd.
         ui.note("Нет признаков для анализа.")
         return
     status_by_column = dict(zip(frame["признак"], frame["статус"], strict=True))
+    names = frame["признак"].tolist()
+    focus = st.session_state.get(f"{key_prefix}-focus")
     column = st.selectbox(
-        "Признак", frame["признак"].tolist(),
+        "Признак", names, index=names.index(focus) if focus in names else 0,
         format_func=lambda c: f"{c}  ·  {status_by_column[c]}", key=f"{key_prefix}-dist-select",
     )
     col_report = next(c for c in report["columns"] if c["column"] == column)

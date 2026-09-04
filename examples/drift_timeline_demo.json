@@ -293,7 +293,7 @@
     "channel"
   ],
   "meta": {
-    "generated_at": "2026-09-04T15:26:33+00:00",
+    "generated_at": "2026-09-04T17:02:48+00:00",
     "config": {
       "thresholds": {
         "psi_warning": 0.1,

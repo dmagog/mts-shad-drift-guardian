@@ -1,8 +1,13 @@
-"""Самодостаточный HTML-отчёт с графиками Plotly и экспорт отчёта в JSON."""
+"""HTML-отчёты в визуальной системе дашборда (``drift_guardian.theme``) и экспорт JSON.
+
+Отчёт по двум батчам повторяет структуру дашборда: вердикт, «что изменилось»,
+целевая переменная, замечания к данным, все признаки, распределения, adversarial
+validation, журнал алертов. Отчёт по потоку: вердикт последнего периода, динамика,
+таблица периодов, алерты по периодам.
+"""
 from __future__ import annotations
 
 import json
-import math
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -12,174 +17,153 @@ import pandas as pd
 import plotly.graph_objects as go
 from jinja2 import Template
 
+from .narrative import (
+    CHECK_LABELS,
+    CONCEPT_DRIFT_NOTE,
+    HEADLINES,
+    SPECIAL_TITLES,
+    drifted_columns,
+    explain_column,
+    features_stable,
+    fmt_int,
+    fmt_num,
+    fmt_p,
+    hero_facts,
+    issues_by_column,
+    psi_of,
+    test_lines,
+)
 from .plots import (
     SEVERITY_RANK,
     STATUS_LABELS,
     categorical_distribution_figure,
     column_summary_frame,
+    compact_figure,
     feature_importance_figure,
     numeric_distribution_figure,
     severity_from_label,
     timeline_psi_figure,
     timeline_severity_figure,
 )
+from .theme import COMPONENT_CSS, all_clear, chip, hero, issue_list, note, section, topbar
 
-SUMMARY_HEADERS = [
-    "Признак", "Тип", "Статус", "PSI", "JS", "Вассерштейн (норм.)", "KS / χ²", "p-value",
-]
-SPECIAL_TITLES = {
-    "target_drift": "Целевая переменная",
-    "prediction_drift": "Предсказания модели",
-}
-CONCEPT_DRIFT_NOTE = (
-    "Признаки стабильны, а целевая переменная изменилась — вероятен концептуальный дрейф: "
-    "изменилась связь между признаками и целью, а не сами входные данные."
-)
+PAGE_CSS = """
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#0b0b0b;background:#f9f9f7;margin:0;padding:24px 32px;line-height:1.45}
+main{max-width:1200px;margin:0 auto}
+table{border-collapse:separate;border-spacing:0;width:100%;background:#fff;font-size:13px;border:1px solid #e1e0d9;border-radius:10px;overflow:hidden}
+th,td{padding:7px 10px;border-bottom:1px solid #e1e0d9;text-align:left;vertical-align:middle}
+th{color:#52514e;font-weight:600;background:#f6f5f1;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase}
+td.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+details{background:#fff;border:1px solid #e1e0d9;border-radius:10px;padding:8px 14px;margin:8px 0}
+summary{cursor:pointer;font-weight:600;display:flex;align-items:center;gap:.6rem;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"›";color:#898781;font-size:18px;line-height:1;transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
+.dg-alerts{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#52514e;white-space:pre-wrap;margin:8px 0 0}
+.dg-card .plotly-graph-div{margin-top:6px}
+footer{margin-top:28px}
+@media (max-width:800px){.dg-two{grid-template-columns:1fr}}
+"""
 
-_TEMPLATE = Template(
+_PAGE = Template(
     """<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ title }}</title>
-<style>
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #0b0b0b; background: #f9f9f7; margin: 0; padding: 24px 32px; }
-  main { max-width: 1200px; margin: 0 auto; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
-  h2 { font-size: 18px; margin: 28px 0 12px; }
-  .muted { color: #52514e; font-size: 13px; }
-  .banner { padding: 14px 18px; border-radius: 8px; margin: 16px 0; border: 1px solid rgba(11,11,11,.1); font-size: 15px; }
-  .banner.ok { background: #e8f6e8; } .banner.warning { background: #fff4d6; } .banner.critical { background: #fbe4e4; }
-  .kpis { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
-  .kpi { background: #fcfcfb; border: 1px solid #e1e0d9; border-radius: 8px; padding: 10px 14px; min-width: 150px; }
-  .kpi .v { font-size: 22px; font-weight: 600; } .kpi .l { color: #52514e; font-size: 12px; }
-  table { border-collapse: collapse; width: 100%; background: #fcfcfb; font-size: 13px; }
-  th, td { padding: 6px 10px; border-bottom: 1px solid #e1e0d9; text-align: left; vertical-align: top; }
-  th { color: #52514e; font-weight: 600; }
-  td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-  tr.critical { background: #fbe4e4; } tr.warning { background: #fff4d6; }
-  details { background: #fcfcfb; border: 1px solid #e1e0d9; border-radius: 8px; padding: 8px 12px; margin: 8px 0; }
-  summary { cursor: pointer; font-weight: 600; }
-  ul { padding-left: 20px; } li { margin: 4px 0; }
-  .note { background: #fff4d6; border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
-</style>
+<style>{{ css }}</style>
 </head>
 <body><main>
-<header>
-  <h1>{{ title }}</h1>
-  <p class="muted">Сформирован {{ generated_at }}</p>
-</header>
-
-<section class="banner {{ severity }}"><strong>{{ status_label }}</strong> — {{ recommendation }}</section>
-
-<div class="kpis">
-  <div class="kpi"><div class="v">{{ meta.reference_rows }}</div><div class="l">строк в эталоне</div></div>
-  <div class="kpi"><div class="v">{{ meta.current_rows }}</div><div class="l">строк в батче</div></div>
-  <div class="kpi"><div class="v">{{ n_columns }}</div><div class="l">признаков проверено</div></div>
-  <div class="kpi"><div class="v">{{ alerts|length }}</div><div class="l">алертов</div></div>
-  {% if adversarial %}<div class="kpi"><div class="v">{{ '%.3f'|format(adversarial.roc_auc) }}</div><div class="l">adversarial ROC-AUC</div></div>{% endif %}
-</div>
-
-<section>
-  <h2>Алерты</h2>
-  {% if alerts %}<ul>{% for alert in alerts %}<li>{{ alert }}</li>{% endfor %}</ul>
-  {% else %}<p>Алертов нет — распределения стабильны.</p>{% endif %}
-</section>
-
-{% for block in special_blocks %}
-<section>
-  <h2>{{ block.title }} «{{ block.column }}» — {{ block.label }}</h2>
-  {% if block.note %}<p class="note">{{ block.note }}</p>{% endif %}
-  <table>
-    <thead><tr><th>Тест</th><th>Статистика</th><th>p-value</th><th>Статус</th></tr></thead>
-    <tbody>{% for t in block.tests %}<tr class="{{ t.severity }}"><td>{{ t.name }}</td><td class="num">{{ t.statistic }}</td><td class="num">{{ t.p_value }}</td><td>{{ t.label }}</td></tr>{% endfor %}</tbody>
-  </table>
-  {{ block.html|safe }}
-</section>
-{% endfor %}
-
-<section>
-  <h2>Сводка по признакам</h2>
-  {% if summary_rows %}
-  <table>
-    <thead><tr>{% for header in summary_headers %}<th>{{ header }}</th>{% endfor %}</tr></thead>
-    <tbody>
-    {% for row in summary_rows %}
-      <tr class="{{ row.severity }}">{% for cell in row.cells %}<td class="{{ 'num' if loop.index > 3 else '' }}">{{ cell }}</td>{% endfor %}</tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}<p>Нет признаков для анализа.</p>{% endif %}
-</section>
-
-<section>
-  <h2>Схема и качество данных</h2>
-  {% if issues %}
-  <table>
-    <thead><tr><th>Проверка</th><th>Признак</th><th>Статус</th><th>Сообщение</th></tr></thead>
-    <tbody>{% for issue in issues %}<tr class="{{ issue.severity }}"><td>{{ issue.check }}</td><td>{{ issue.column or '—' }}</td><td>{{ issue.label }}</td><td>{{ issue.message }}</td></tr>{% endfor %}</tbody>
-  </table>
-  {% else %}<p>Замечаний к схеме и качеству данных нет.</p>{% endif %}
-</section>
-
-<section>
-  <h2>Распределения: эталон против текущего батча</h2>
-  {% for plot in plots %}
-  <details {% if plot.open %}open{% endif %}><summary>{{ plot.label }} · {{ plot.column }}</summary>{{ plot.html|safe }}</details>
-  {% endfor %}
-  {% if plots_skipped %}<p class="muted">Показаны {{ plots|length }} признаков; ещё {{ plots_skipped }} без изменений скрыто.</p>{% endif %}
-</section>
-
-<section>
-  <h2>Adversarial validation</h2>
-  {% if adversarial %}
-  <p>ROC-AUC = <strong>{{ '%.3f'|format(adversarial.roc_auc) }}</strong> ({{ adversarial.label }}), бэкенд {{ adversarial.backend }}, использовано строк: {{ adversarial.n_rows_used }}.
-  Значение около 0.5 означает, что классификатор не отличает эталон от батча; чем выше — тем сильнее изменилась совместная структура данных.</p>
-  {{ importance_html|safe }}
-  {% else %}<p>Adversarial validation не выполнялась.</p>{% endif %}
-</section>
-
-<footer class="muted">
-  <p>Пороги: PSI warning ≥ {{ th.psi_warning }}, critical ≥ {{ th.psi_critical }} · JS warning ≥ {{ th.js_warning }}, critical ≥ {{ th.js_critical }} · Вассерштейн/σ warning ≥ {{ th.wasserstein_warning }}, critical ≥ {{ th.wasserstein_critical }} · α = {{ th.alpha }}{% if meta.alpha_effective %} (с поправкой {{ '%.3g'|format(meta.alpha_effective) }}){% endif %} · adversarial ROC-AUC warning ≥ {{ th.adversarial_auc_warning }}, critical ≥ {{ th.adversarial_auc_critical }}.</p>
-  <p>Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС</p>
-</footer>
+{{ body|safe }}
+<footer class="dg-meta">{{ footer|safe }}</footer>
 </main></body></html>
 """
 )
 
+_REPORT_BODY = Template(
+    """{{ topbar|safe }}
+{{ hero|safe }}
+{{ changed_section|safe }}
+{% if cards %}<div class="dg-grid" style="grid-template-columns:repeat({{ grid_cols }},minmax(0,1fr))">{% for c in cards %}<div class="dg-card">{{ c.head|safe }}{{ c.html|safe }}</div>{% endfor %}</div>
+{% else %}{{ all_clear|safe }}{% endif %}
+{% for b in special %}{{ b.section|safe }}<div class="dg-two"><div>{{ b.html|safe }}</div><div>{{ b.list|safe }}{{ b.note|safe }}</div></div>{% endfor %}
+{% if issues_html %}{{ issues_section|safe }}{{ issues_html|safe }}{% endif %}
+{{ infos_note|safe }}
+{{ all_section|safe }}
+{% if summary_rows %}<table>
+<thead><tr>{% for h in headers %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+<tbody>{% for r in summary_rows %}<tr><td>{{ r.name }}</td><td>{{ r.kind }}</td><td>{{ r.chip|safe }}</td>{% for c in r.cells %}<td class="num">{{ c }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+</table>{% else %}<p class="dg-note">Нет признаков для анализа.</p>{% endif %}
+{{ dist_section|safe }}
+{% for p in plots %}<details {% if p.open %}open{% endif %}><summary>{{ p.chip|safe }}<span>{{ p.column }}</span></summary>{{ p.html|safe }}</details>{% endfor %}
+{% if plots_skipped %}<p class="dg-note">Показаны {{ plots|length }} признаков; ещё {{ plots_skipped }} без изменений скрыто.</p>{% endif %}
+{{ adv_section|safe }}
+{{ adv_hero|safe }}
+{{ importance_html|safe }}
+{{ log_section|safe }}
+<details><summary><span>Текст алертов для копирования</span></summary><pre class="dg-alerts">{{ alerts_text }}</pre></details>
+"""
+)
 
-def _fmt(value: Any, digits: int = 3) -> str:
-    if value is None or (isinstance(value, float) and math.isnan(value)):
-        return ""
-    return f"{float(value):.{digits}f}"
+_TIMELINE_BODY = Template(
+    """{{ topbar|safe }}
+{{ hero|safe }}
+{{ dyn_section|safe }}
+<div class="dg-two"><div>{{ severity_html|safe }}</div><div>{{ psi_html|safe }}</div></div>
+{{ periods_section|safe }}
+<table>
+<thead><tr><th>Период</th><th>Строк</th><th>Статус</th><th>Таргет</th><th>Critical</th><th>Warning</th><th>Adversarial AUC</th><th>Алертов</th></tr></thead>
+<tbody>{% for p in periods %}<tr><td>{{ p.label }}</td><td class="num">{{ p.rows }}</td><td>{{ p.chip|safe }}</td><td>{{ p.target_chip|safe }}</td><td class="num">{{ p.n_critical }}</td><td class="num">{{ p.n_warning }}</td><td class="num">{{ p.auc }}</td><td class="num">{{ p.alerts|length }}</td></tr>{% endfor %}</tbody>
+</table>
+{{ alerts_section|safe }}
+{% for p in periods %}<details {% if p.overall_severity != 'ok' %}open{% endif %}><summary>{{ p.chip|safe }}<span>{{ p.label }}</span></summary>{% if p.alerts %}{{ p.list|safe }}{% else %}<p class="dg-note">Алертов нет.</p>{% endif %}</details>{% endfor %}
+"""
+)
 
 
-def _fmt_p(value: Any) -> str:
-    if value is None or (isinstance(value, float) and math.isnan(value)):
-        return ""
-    value = float(value)
-    return "<1e-16" if value < 1e-16 else f"{value:.2g}"
-
-
-def _distribution_figure(kind: str, reference: pd.Series, current: pd.Series, title: str) -> go.Figure:
+def _distribution_figure(kind: str, reference: pd.Series, current: pd.Series) -> go.Figure:
     if kind == "numeric":
-        return numeric_distribution_figure(reference, current, title=title)
-    return categorical_distribution_figure(reference, current, title=title)
+        return numeric_distribution_figure(reference, current, title=None)
+    return categorical_distribution_figure(reference, current, title=None)
 
 
-def _figures_to_html(figures: list[go.Figure], plotlyjs: str) -> list[str]:
+def _figures_to_html(figures: list[go.Figure], plotlyjs: str, heights: list[int] | None = None) -> list[str]:
     """Первая фигура несёт plotly.js (inline или cdn), остальные — только данные."""
     first = True if plotlyjs == "inline" else "cdn"
+    heights = heights or [360] * len(figures)
     return [
         fig.to_html(
             full_html=False,
             include_plotlyjs=first if index == 0 else False,
             config={"displaylogo": False, "responsive": True},
-            default_height=360,
+            default_height=height,
         )
-        for index, fig in enumerate(figures)
+        for index, (fig, height) in enumerate(zip(figures, heights, strict=True))
     ]
+
+
+def _footer(thresholds: dict, alpha_effective: float | None) -> str:
+    if not thresholds:
+        return "Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС"
+    alpha = f" (с поправкой {alpha_effective:.3g})" if alpha_effective else ""
+    return (
+        f"Пороги: PSI {thresholds['psi_warning']} / {thresholds['psi_critical']} · "
+        f"JS {thresholds['js_warning']} / {thresholds['js_critical']} · "
+        f"Вассерштейн/σ {thresholds['wasserstein_warning']} / {thresholds['wasserstein_critical']} · "
+        f"α = {thresholds['alpha']}{alpha} · adversarial ROC-AUC "
+        f"{thresholds['adversarial_auc_warning']} / {thresholds['adversarial_auc_critical']}."
+        "<br>Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС"
+    )
+
+
+def _split(html_list: list[str], sizes: list[int]) -> list[list[str]]:
+    out, start = [], 0
+    for size in sizes:
+        out.append(html_list[start:start + size])
+        start += size
+    return out
 
 
 def render_html_report(
@@ -199,116 +183,137 @@ def render_html_report(
     meta = report.get("meta", {}) or {}
     severity = report["overall_severity"]
     thresholds = (meta.get("config") or {}).get("thresholds") or {}
+    psi_warning = thresholds.get("psi_warning", 0.1)
+    psi_critical = thresholds.get("psi_critical", 0.2)
+    generated = (meta.get("generated_at") or datetime.now().isoformat(timespec="seconds")).replace("T", " ")[:16]
+
+    def present(name: str) -> bool:
+        return name in reference.columns and name in current.columns
+
+    # 1. Карточки «что изменилось» (мини-графики).
+    drifted = [c for c in drifted_columns(report) if present(c["column"])][:6]
+    by_column = issues_by_column(report)
+    card_figs = [
+        compact_figure(_distribution_figure(c["kind"], reference[c["column"]], current[c["column"]]),
+                       categorical=c["kind"] == "categorical")
+        for c in drifted
+    ]
+    # 2. Целевая переменная / предсказания.
+    special_meta, special_figs = [], []
+    for key, block_title in SPECIAL_TITLES.items():
+        block = report.get(key)
+        if not block or not present(block["column"]):
+            continue
+        special_figs.append(_distribution_figure(block["kind"], reference[block["column"]], current[block["column"]]))
+        special_meta.append((key, block_title, block))
+    # 3. Распределения всех признаков.
+    columns_sorted = sorted(
+        (c for c in report.get("columns", []) if present(c["column"])),
+        key=lambda c: (SEVERITY_RANK[c["severity"]], c["column"]),
+    )
+    plot_cols = columns_sorted[:max_plots]
+    plot_figs = [_distribution_figure(c["kind"], reference[c["column"]], current[c["column"]]) for c in plot_cols]
+    # 4. Adversarial validation.
+    adversarial = report.get("adversarial")
+    importance_figs = [feature_importance_figure(adversarial["top_features"], title=None)] \
+        if adversarial and adversarial.get("top_features") else []
+
+    figures = [*card_figs, *special_figs, *plot_figs, *importance_figs]
+    heights = [150] * len(card_figs) + [340] * len(special_figs) + [340] * len(plot_figs) + [320] * len(importance_figs)
+    htmls = _figures_to_html(figures, plotlyjs, heights)
+    card_html, special_html, plot_html, importance_html = _split(
+        htmls, [len(card_figs), len(special_figs), len(plot_figs), len(importance_figs)]
+    )
+
+    cards = [
+        {
+            "head": _card_head(c, by_column.get(c["column"], []), psi_warning, psi_critical),
+            "html": html,
+        }
+        for c, html in zip(drifted, card_html, strict=True)
+    ]
+    n_drifted = len(drifted_columns(report))
+    changed_meta = f"{n_drifted} из {len(report.get('columns', []))} признаков" + (
+        f", показаны {len(cards)}" if n_drifted > len(cards) else ""
+    )
+
+    special = []
+    for (key, block_title, block), html in zip(special_meta, special_html, strict=True):
+        show_note = key == "target_drift" and block["severity"] == "critical" and features_stable(report)
+        special.append(
+            {
+                "section": section(f"{block_title} «{block['column']}»", STATUS_LABELS[block["severity"]]),
+                "html": html,
+                "list": issue_list(test_lines(block)),
+                "note": note(CONCEPT_DRIFT_NOTE) if show_note else "",
+            }
+        )
+
+    issues = [*report.get("schema", []), *report.get("data_quality", [])]
+    alerts = [i for i in issues if i["severity"] != "ok"]
+    infos = [i for i in issues if i["severity"] == "ok"]
 
     summary_rows = []
     for _, row in column_summary_frame(report).iterrows():
+        sev = severity_from_label(row["статус"])
         summary_rows.append(
             {
-                "severity": severity_from_label(row["статус"]),
-                "cells": [
-                    row["признак"], row["тип"], row["статус"],
-                    _fmt(row["PSI"]), _fmt(row["JS"]), _fmt(row["Вассерштейн (норм.)"]),
-                    _fmt(row["KS / χ²"]), _fmt_p(row["p-value"]),
-                ],
+                "name": row["признак"], "kind": row["тип"], "chip": chip(sev),
+                "cells": [fmt_num(row["PSI"]), fmt_num(row["JS"]), fmt_num(row["Вассерштейн (норм.)"]),
+                          fmt_num(row["KS / χ²"]), fmt_p(row["p-value"])],
             }
         )
 
-    issues = [
-        {**issue, "label": STATUS_LABELS[issue["severity"]]}
-        for issue in (*report.get("schema", []), *report.get("data_quality", []))
-    ]
-
-    # Отдельные блоки: целевая переменная и предсказания.
-    # Ранг 0 — critical; если минимальный ранг среди признаков > 0, критичных признаков нет.
-    features_without_critical = (
-        min((SEVERITY_RANK[c["severity"]] for c in report.get("columns", [])), default=2) > 0
-    )
-    special_figs: list[go.Figure] = []
-    special_meta: list[dict] = []
-    for key, block_title in SPECIAL_TITLES.items():
-        block = report.get(key)
-        if not block:
-            continue
-        name = block["column"]
-        if name not in reference.columns or name not in current.columns:
-            continue
-        note = ""
-        if key == "target_drift" and block["severity"] == "critical" and features_without_critical:
-            note = CONCEPT_DRIFT_NOTE
-        special_figs.append(_distribution_figure(block["kind"], reference[name], current[name], name))
-        special_meta.append(
-            {
-                "title": block_title,
-                "column": name,
-                "label": STATUS_LABELS[block["severity"]],
-                "note": note,
-                "tests": [
-                    {
-                        "name": t["name"],
-                        "statistic": _fmt(t["statistic"], 4),
-                        "p_value": _fmt_p(t.get("p_value")),
-                        "severity": t["severity"],
-                        "label": STATUS_LABELS[t["severity"]],
-                    }
-                    for t in block["tests"]
-                ],
-            }
-        )
-
-    columns_sorted = sorted(
-        report.get("columns", []),
-        key=lambda c: (SEVERITY_RANK[c["severity"]], c["column"]),
-    )
-    column_figs: list[go.Figure] = []
-    plot_meta: list[dict] = []
-    for col in columns_sorted[:max_plots]:
-        name = col["column"]
-        if name not in reference.columns or name not in current.columns:
-            continue
-        column_figs.append(_distribution_figure(col["kind"], reference[name], current[name], name))
-        plot_meta.append(
-            {"column": name, "label": STATUS_LABELS[col["severity"]], "open": col["severity"] != "ok"}
-        )
-    plots_skipped = max(0, len(columns_sorted) - len(plot_meta))
-
-    adversarial = report.get("adversarial")
-    has_importance = bool(adversarial and adversarial.get("top_features"))
-    figures = [*special_figs, *column_figs]
-    if has_importance:
-        figures.append(feature_importance_figure(adversarial["top_features"]))
-
-    htmls = _figures_to_html(figures, plotlyjs)
-    n_special, n_columns = len(special_figs), len(column_figs)
-    special_blocks = [
-        {**m, "html": h} for m, h in zip(special_meta, htmls[:n_special], strict=True)
-    ]
     plots = [
-        {**m, "html": h} for m, h in zip(plot_meta, htmls[n_special:n_special + n_columns], strict=True)
+        {"column": c["column"], "chip": chip(c["severity"]), "open": c["severity"] != "ok", "html": html}
+        for c, html in zip(plot_cols, plot_html, strict=True)
     ]
-    importance_html = htmls[n_special + n_columns] if has_importance else ""
+    adv_hero = ""
+    if adversarial:
+        adv_hero = hero(
+            adversarial["severity"], f"ROC-AUC {adversarial['roc_auc']:.3f}",
+            "Классификатор учится отличать эталон от батча: около 0.5 — выборки неразличимы, "
+            "чем выше, тем сильнее изменилась совместная структура признаков.",
+            [(" бэкенд", adversarial["backend"]), (" строк использовано", fmt_int(adversarial["n_rows_used"]))],
+        )
+    else:
+        adv_hero = note("Adversarial validation не выполнялась.")
 
-    return _TEMPLATE.render(
-        title=title,
-        generated_at=meta.get("generated_at") or datetime.now().isoformat(timespec="seconds"),
-        severity=severity,
-        status_label=STATUS_LABELS[severity],
-        recommendation=report.get("recommendation", ""),
-        meta=meta,
-        n_columns=len(report.get("columns", [])),
-        alerts=report.get("alerts", []),
-        special_blocks=special_blocks,
-        summary_headers=SUMMARY_HEADERS,
+    body = _REPORT_BODY.render(
+        topbar=topbar("отчёт о дрейфе данных", f"сформирован {generated}"),
+        hero=hero(severity, HEADLINES[severity], report.get("recommendation", ""), hero_facts(report)),
+        changed_section=section("Что изменилось", changed_meta if cards else None),
+        cards=cards,
+        grid_cols=2 if len(cards) in (1, 2, 4) else 3,  # без «сироты»: 4 карточки — 2+2
+        all_clear=all_clear(f"Все {len(report.get('columns', []))} признаков стабильны: распределения батча совпадают с эталоном."),
+        special=special,
+        issues_section=section("Замечания к данным", str(len(alerts))),
+        issues_html=issue_list([(i["severity"], i["message"], CHECK_LABELS.get(i["check"], i["check"])) for i in alerts]) if alerts else "",
+        infos_note=note(" ".join(i["message"] for i in infos)) if infos else "",
+        all_section=section("Все признаки"),
+        headers=["Признак", "Тип", "Статус", "PSI", "JS", "Вассерштейн (норм.)", "KS / χ²", "p-value"],
         summary_rows=summary_rows,
-        issues=issues,
+        dist_section=section("Распределения: эталон против батча"),
         plots=plots,
-        plots_skipped=plots_skipped,
-        adversarial=(
-            {**adversarial, "label": STATUS_LABELS[adversarial["severity"]]}
-            if adversarial
-            else None
-        ),
-        importance_html=importance_html,
-        th=thresholds,
+        plots_skipped=max(0, len(columns_sorted) - len(plots)),
+        adv_section=section("Adversarial validation"),
+        adv_hero=adv_hero,
+        importance_html=importance_html[0] if importance_html else "",
+        log_section=section("Журнал алертов", str(len(report.get("alerts", [])))),
+        alerts_text="\n".join(report.get("alerts", [])) or "Алертов нет.",
+    )
+    return _PAGE.render(
+        title=title, css=COMPONENT_CSS + PAGE_CSS, body=body,
+        footer=_footer(thresholds, meta.get("alpha_effective")),
+    )
+
+
+def _card_head(col: dict, issues: list[dict], psi_warning: float, psi_critical: float) -> str:
+    from .theme import card_head
+
+    return card_head(
+        col["column"], col["severity"], explain_column(col, issues), "PSI", psi_of(col),
+        psi_warning, psi_critical,
     )
 
 
@@ -323,6 +328,75 @@ def save_html_report(
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(render_html_report(report, reference, current, **kwargs), encoding="utf-8")
+    return target
+
+
+def render_timeline_html(
+    timeline: dict,
+    *,
+    title: str = "Data Drift Guardian — мониторинг во времени",
+    plotlyjs: str = "inline",
+) -> str:
+    """HTML-отчёт по серии батчей: статус и PSI по периодам, сводная таблица, алерты."""
+    thresholds = (timeline.get("meta", {}).get("config") or {}).get("thresholds") or {}
+    periods_raw = timeline.get("periods", [])
+    generated = (timeline.get("meta", {}).get("generated_at") or "").replace("T", " ")[:16]
+    severity_html, psi_html = _figures_to_html(
+        [
+            timeline_severity_figure(timeline, title=None),
+            timeline_psi_figure(
+                timeline, psi_warning=thresholds.get("psi_warning", 0.1),
+                psi_critical=thresholds.get("psi_critical", 0.2), title=None,
+            ),
+        ],
+        plotlyjs, [320, 320],
+    )
+    periods = [
+        {
+            **p,
+            "chip": chip(p["overall_severity"]),
+            "target_chip": chip(p["target_severity"]) if p.get("target_severity") else "—",
+            "auc": fmt_num(p.get("adversarial_auc")),
+            "list": issue_list([
+                ("critical" if a.startswith("КРИТИЧНО") else "warning", a.split(": ", 1)[-1], "")
+                for a in p["alerts"]
+            ]),
+        }
+        for p in periods_raw
+    ]
+    if periods:
+        last = periods[-1]
+        first_bad = next((p["label"] for p in periods if p["overall_severity"] != "ok"), "нет")
+        hero_html = hero(
+            last["overall_severity"],
+            f"{HEADLINES[last['overall_severity']]} в последнем периоде {last['label']}",
+            last["recommendation"],
+            [
+                (" периодов", str(len(periods))),
+                (" критичных", str(sum(p["overall_severity"] == "critical" for p in periods))),
+                (" первый период с дрейфом", first_bad),
+                (" строк в эталоне", fmt_int(timeline.get("reference_rows", 0))),
+            ],
+        )
+    else:
+        hero_html = note("В потоке не нашлось ни одного периода с данными.")
+    body = _TIMELINE_BODY.render(
+        topbar=topbar("мониторинг во времени", f"сформирован {generated}" if generated else ""),
+        hero=hero_html,
+        dyn_section=section("Динамика по периодам"),
+        severity_html=severity_html,
+        psi_html=psi_html,
+        periods_section=section("Статус по периодам", f"{len(periods)}"),
+        periods=periods,
+        alerts_section=section("Алерты по периодам"),
+    )
+    return _PAGE.render(title=title, css=COMPONENT_CSS + PAGE_CSS, body=body, footer=_footer(thresholds, None))
+
+
+def save_timeline_html(path: str | Path, timeline: dict, **kwargs: Any) -> Path:
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(render_timeline_html(timeline, **kwargs), encoding="utf-8")
     return target
 
 
@@ -341,93 +415,3 @@ def _json_default(obj: Any):
 def report_to_json(report: dict, indent: int = 2) -> str:
     """Сериализует словарь отчёта в JSON (кириллица без экранирования)."""
     return json.dumps(report, ensure_ascii=False, indent=indent, default=_json_default)
-
-
-_TIMELINE_TEMPLATE = Template(
-    """<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ title }}</title>
-<style>
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #0b0b0b; background: #f9f9f7; margin: 0; padding: 24px 32px; }
-  main { max-width: 1200px; margin: 0 auto; }
-  h1 { font-size: 24px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 28px 0 12px; }
-  .muted { color: #52514e; font-size: 13px; }
-  .banner { padding: 14px 18px; border-radius: 8px; margin: 16px 0; border: 1px solid rgba(11,11,11,.1); font-size: 15px; }
-  .banner.ok { background: #e8f6e8; } .banner.warning { background: #fff4d6; } .banner.critical { background: #fbe4e4; }
-  table { border-collapse: collapse; width: 100%; background: #fcfcfb; font-size: 13px; }
-  th, td { padding: 6px 10px; border-bottom: 1px solid #e1e0d9; text-align: left; vertical-align: top; }
-  th { color: #52514e; font-weight: 600; } td.num { font-variant-numeric: tabular-nums; text-align: right; }
-  tr.critical { background: #fbe4e4; } tr.warning { background: #fff4d6; }
-  details { background: #fcfcfb; border: 1px solid #e1e0d9; border-radius: 8px; padding: 8px 12px; margin: 8px 0; }
-  summary { cursor: pointer; font-weight: 600; } ul { padding-left: 20px; } li { margin: 4px 0; }
-</style>
-</head>
-<body><main>
-<header><h1>{{ title }}</h1><p class="muted">Сформирован {{ generated_at }} · эталон {{ reference_rows }} строк · периодов: {{ periods|length }}</p></header>
-<section class="banner {{ last.overall_severity }}"><strong>Последний период {{ last.label }}: {{ last_label }}</strong> — {{ last.recommendation }}</section>
-<section><h2>Статус по периодам</h2>{{ severity_html|safe }}</section>
-<section><h2>PSI по периодам</h2>{{ psi_html|safe }}</section>
-<section>
-  <h2>Сводка</h2>
-  <table>
-    <thead><tr><th>Период</th><th>Строк</th><th>Статус</th><th>Таргет</th><th>critical</th><th>warning</th><th>Adversarial AUC</th><th>Алертов</th></tr></thead>
-    <tbody>{% for p in periods %}<tr class="{{ p.overall_severity }}"><td>{{ p.label }}</td><td class="num">{{ p.rows }}</td><td>{{ p.status_label }}</td><td>{{ p.target_label }}</td><td class="num">{{ p.n_critical }}</td><td class="num">{{ p.n_warning }}</td><td class="num">{{ p.auc }}</td><td class="num">{{ p.alerts|length }}</td></tr>{% endfor %}</tbody>
-  </table>
-</section>
-<section>
-  <h2>Алерты по периодам</h2>
-  {% for p in periods %}<details {% if p.overall_severity != 'ok' %}open{% endif %}><summary>{{ p.status_label }} · {{ p.label }}</summary>{% if p.alerts %}<ul>{% for a in p.alerts %}<li>{{ a }}</li>{% endfor %}</ul>{% else %}<p class="muted">Алертов нет.</p>{% endif %}</details>{% endfor %}
-</section>
-<footer class="muted"><p>Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС</p></footer>
-</main></body></html>
-"""
-)
-
-
-def render_timeline_html(
-    timeline: dict,
-    *,
-    title: str = "Data Drift Guardian — мониторинг во времени",
-    plotlyjs: str = "inline",
-) -> str:
-    """HTML-отчёт по серии батчей: статус и PSI по периодам, сводная таблица, алерты."""
-    thresholds = (timeline.get("meta", {}).get("config") or {}).get("thresholds") or {}
-    figures = [
-        timeline_severity_figure(timeline),
-        timeline_psi_figure(
-            timeline,
-            psi_warning=thresholds.get("psi_warning", 0.1),
-            psi_critical=thresholds.get("psi_critical", 0.2),
-        ),
-    ]
-    severity_html, psi_html = _figures_to_html(figures, plotlyjs)
-    periods = [
-        {
-            **p,
-            "status_label": STATUS_LABELS[p["overall_severity"]],
-            "target_label": STATUS_LABELS[p["target_severity"]] if p.get("target_severity") else "—",
-            "auc": _fmt(p.get("adversarial_auc")),
-        }
-        for p in timeline["periods"]
-    ]
-    last = periods[-1] if periods else {"overall_severity": "ok", "label": "—", "recommendation": ""}
-    return _TIMELINE_TEMPLATE.render(
-        title=title,
-        generated_at=timeline.get("meta", {}).get("generated_at", ""),
-        reference_rows=timeline.get("reference_rows", 0),
-        periods=periods,
-        last=last,
-        last_label=STATUS_LABELS[last["overall_severity"]],
-        severity_html=severity_html,
-        psi_html=psi_html,
-    )
-
-
-def save_timeline_html(path: str | Path, timeline: dict, **kwargs: Any) -> Path:
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render_timeline_html(timeline, **kwargs), encoding="utf-8")
-    return target

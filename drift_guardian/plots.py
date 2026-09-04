@@ -293,3 +293,19 @@ def timeline_frame(timeline: dict) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows)
+
+
+def compact_figure(fig: go.Figure, height: int = 150, categorical: bool = False) -> go.Figure:
+    """Мини-график для карточки: без заголовка, легенды и подписей осей.
+
+    У категориальных графиков подписи категорий скрываются: в карточке они не читаются,
+    а что именно изменилось, объясняет текст над графиком.
+    """
+    fig.update_layout(
+        height=height, margin=dict(l=6, r=6, t=6, b=6 if categorical else 22),
+        showlegend=False, title=None, hovermode="closest",
+    )
+    fig.update_xaxes(title_text=None, tickfont=dict(size=10), showgrid=False,
+                     showticklabels=not categorical)
+    fig.update_yaxes(title_text=None, visible=False)
+    return fig

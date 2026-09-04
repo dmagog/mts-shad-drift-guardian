@@ -71,6 +71,7 @@ def test_html_report_contains_alerts_and_plots(tmp_path):
     report = analyze(ref, cur)
     html = render_html_report(report, ref, cur, plotlyjs="cdn")
     assert "<html" in html and "КРИТИЧНО" in html and "plotly" in html.lower()
+    assert "Что изменилось" in html and "dg-chip" in html
     for column in report["meta"]["numeric_columns"]:
         assert column in html
     path = save_html_report(tmp_path / "report.html", report, ref, cur, plotlyjs="cdn")

@@ -68,4 +68,4 @@ def test_cli_timeline_mode(tmp_path):
     assert code in (0, 1, 2)
     timeline = json.loads(json_path.read_text(encoding="utf-8"))
     assert [p["label"] for p in timeline["periods"]] == ["2026-01", "2026-02", "2026-03"]
-    assert "PSI по периодам" in html_path.read_text(encoding="utf-8")
+    assert "Статус по периодам" in html_path.read_text(encoding="utf-8")
