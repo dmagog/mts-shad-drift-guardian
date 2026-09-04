@@ -3,7 +3,8 @@
 Система детекции дрейфа данных и контроля их качества для ML-моделей в продакшене.
 Сравнивает эталонную выборку (на которой обучалась модель) с текущим продакшн-батчем
 и выдаёт структурированный отчёт с метриками и алертами — без нейросетей, на строгой
-математической статистике и классическом ML.
+математической статистике и классическом ML. Результат доступен как словарь Python,
+интерактивный дашборд на Streamlit и самодостаточный HTML-отчёт.
 
 Итоговый проект «4.0 Школы аналитиков данных» МТС, задача №4. Заказчик — Бояджи Владислав.
 
@@ -16,30 +17,67 @@
 | **Drift Engines** (`drift_engines.py`) | Числовые: KS-тест, PSI, дистанция Йенсена–Шеннона, расстояние Вассерштейна. Категориальные: хи-квадрат, PSI, Йенсен–Шеннон. |
 | **Adversarial Validation** (`adversarial.py`) | LightGBM учится отличать эталон от батча; ROC-AUC ≫ 0.5 — дрейф подтверждён, feature importance показывает, что изменилось сильнее всего. |
 | **Оркестратор** (`guardian.py`) | Собирает всё в единый отчёт: сводная серьёзность, алерты на русском, рекомендация. |
+| **Визуализация** (`plots.py`, `html_report.py`, `app/`) | Графики распределений «эталон vs батч» (Plotly), дашборд Streamlit с подсветкой «поплывших» признаков, экспорт HTML и JSON. |
 
 ## Быстрый старт
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-
-# демо-данные кредитного скоринга с искусственным дрейфом (seed фиксирован)
-python scripts/generate_demo.py --out data/demo --seed 42
 ```
 
 ```python
 import pandas as pd
 from drift_guardian import analyze
+from drift_guardian.demo import make_demo
 
-reference = pd.read_csv("data/demo/reference.csv")
-current = pd.read_csv("data/demo/current_mixed.csv")
+reference, current = make_demo("mixed")      # демо-данные с искусственным дрейфом
+report = analyze(reference, current)         # словарь с метриками и алертами
 
-report = analyze(reference, current)
-print(report["overall_severity"])   # "critical"
+print(report["overall_severity"])            # "critical"
 print(report["recommendation"])
 for alert in report["alerts"]:
     print(alert)
 ```
+
+Те же демо-данные в виде CSV (эталон + пять сценариев дрейфа, seed фиксирован):
+
+```bash
+python scripts/generate_demo.py --out data/demo --seed 42
+```
+
+## Дашборд
+
+```bash
+streamlit run app/streamlit_app.py
+```
+
+Откроется `http://localhost:8501`. В боковой панели — источник данных (демо-сценарий
+или свои CSV/Parquet: эталон и текущий батч) и пороги алертов. Справа — сводный статус
+и рекомендация, список алертов, вкладки: сводка по признакам с подсветкой красным/жёлтым,
+распределения по каждому признаку, замечания к схеме и качеству, adversarial validation
+с важностями признаков, экспорт HTML/JSON.
+
+## HTML-отчёт и JSON
+
+```python
+from drift_guardian.html_report import save_html_report, report_to_json
+
+save_html_report("report/drift_report.html", report, reference, current)  # plotlyjs="cdn" — лёгкий файл
+open("report/drift_report.json", "w").write(report_to_json(report))
+```
+
+По умолчанию Plotly.js встраивается в файл (≈4 МБ, работает офлайн); с `plotlyjs="cdn"`
+файл лёгкий, но графикам нужен интернет.
+
+## Docker
+
+```bash
+docker build -t drift-guardian .
+docker run --rm -p 8501:8501 drift-guardian
+```
+
+Дашборд будет доступен на `http://localhost:8501`.
 
 ## Контракт интерфейса
 
@@ -63,7 +101,8 @@ meta               размеры выборок, списки колонок, a
 
 ## Пороги и логика алертов
 
-Все пороги настраиваются через `DriftConfig` / `Thresholds`. Значения по умолчанию:
+Все пороги настраиваются через `DriftConfig` / `Thresholds` (и ползунками в дашборде).
+Значения по умолчанию:
 
 | Метрика | warning | critical |
 |---|---|---|
@@ -97,9 +136,14 @@ drift_guardian/        пакет
   drift_engines.py     статистические тесты дрейфа
   adversarial.py       Adversarial Validation (LightGBM)
   guardian.py          оркестратор и точка входа analyze()
-scripts/generate_demo.py   генератор демо-данных с дрейфом
-tests/                 unit-тесты (pytest)
+  demo.py              генератор демо-данных с пятью сценариями дрейфа
+  plots.py             графики Plotly и таблицы для дашборда/отчёта
+  html_report.py       HTML-отчёт и экспорт JSON
+app/streamlit_app.py   дашборд Streamlit
+scripts/generate_demo.py   демо-данные в CSV
+tests/                 unit-тесты и смоук-тест дашборда (pytest)
 notebooks/             демонстрационный notebook (в работе)
+Dockerfile             образ с дашбордом
 PLAN.md                план работ и распределение ролей
 ```
 
@@ -114,8 +158,8 @@ pytest -q
 - [x] Контракт интерфейса, четыре модуля анализа, оркестратор
 - [x] Генератор демо-данных с фиксированным seed
 - [x] Unit-тесты
-- [ ] Интерактивный дашборд на Streamlit с графиками распределений (Plotly) и подсветкой «поплывших» признаков
-- [ ] Экспорт HTML-отчёта
-- [ ] Dockerfile и инструкция запуска
+- [x] Дашборд на Streamlit с графиками распределений и подсветкой «поплывших» признаков
+- [x] Экспорт HTML-отчёта и JSON
+- [x] Dockerfile и инструкция запуска
 - [ ] Демонстрационный notebook
 - [ ] Итоговый отчёт (PDF/HTML) и скринкаст

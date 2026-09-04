@@ -71,8 +71,12 @@ class DriftGuardian:
             for c in categorical_cols
         ]
 
-        adversarial = adversarial_validation(
-            reference, current, [*numeric_cols, *categorical_cols], cfg
+        adversarial = (
+            adversarial_validation(
+                reference, current, [*numeric_cols, *categorical_cols], cfg
+            )
+            if cfg.adversarial_enabled
+            else None
         )
 
         overall = worst(

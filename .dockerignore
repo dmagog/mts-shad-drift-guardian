@@ -1,0 +1,11 @@
+.venv
+.git
+.claude
+data
+notebooks
+tests
+__pycache__
+*.pyc
+.pytest_cache
+*.egg-info
+.DS_Store

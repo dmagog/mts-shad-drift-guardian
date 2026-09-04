@@ -54,6 +54,8 @@ class DriftConfig:
     categorical_int_unique_limit: int = 10
     # Минимум непустых значений в колонке для запуска статтестов.
     min_samples: int = 20
+    # Включить adversarial-валидацию (можно отключить ради скорости).
+    adversarial_enabled: bool = True
     # Сабсэмплинг для adversarial-валидации (скорость на больших данных).
     adversarial_max_rows: int = 50_000
     # Потоки LightGBM. На небольших данных (и особенно на macOS) многопоточность
@@ -66,3 +68,10 @@ class DriftConfig:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "DriftConfig":
+        """Обратное к ``to_dict``: восстанавливает конфиг вместе с порогами."""
+        data = dict(data)
+        thresholds = data.pop("thresholds", None) or {}
+        return cls(thresholds=Thresholds(**thresholds), **data)
