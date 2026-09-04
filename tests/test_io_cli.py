@@ -51,3 +51,21 @@ def test_cli_no_drift_returns_zero(tmp_path):
     reference.to_csv(ref_path, index=False)
     current.to_csv(cur_path, index=False)
     assert main(["-r", str(ref_path), "-c", str(cur_path), "--target", "target", "-q"]) == 0
+
+
+def test_cli_timeline_mode(tmp_path):
+    from drift_guardian.demo import make_timeline_demo
+
+    reference, stream = make_timeline_demo(n_periods=3, rows_per_period=400, seed=8)
+    ref_path, stream_path = tmp_path / "ref.csv", tmp_path / "stream.csv"
+    reference.to_csv(ref_path, index=False)
+    stream.to_csv(stream_path, index=False)
+    json_path, html_path = tmp_path / "timeline.json", tmp_path / "timeline.html"
+    code = main([
+        "-r", str(ref_path), "-c", str(stream_path), "--date-column", "date", "--freq", "M",
+        "--target", "target", "--no-adversarial", "--json", str(json_path), "--html", str(html_path),
+    ])
+    assert code in (0, 1, 2)
+    timeline = json.loads(json_path.read_text(encoding="utf-8"))
+    assert [p["label"] for p in timeline["periods"]] == ["2026-01", "2026-02", "2026-03"]
+    assert "PSI по периодам" in html_path.read_text(encoding="utf-8")

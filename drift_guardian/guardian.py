@@ -63,7 +63,8 @@ class DriftGuardian:
         if any(i.check in ("empty_reference", "empty_current") for i in schema_issues):
             return self._aborted_report(schema_issues, reference, current, started_at)
 
-        numeric_cols, categorical_cols, skipped_cols = split_columns(reference, current, cfg)
+        numeric_cols, categorical_cols, skipped = split_columns(reference, current, cfg)
+        skipped_cols = list(skipped)
         kind_of = {**dict.fromkeys(numeric_cols, "numeric"),
                    **dict.fromkeys(categorical_cols, "categorical")}
 
@@ -110,6 +111,28 @@ class DriftGuardian:
             else None
         )
 
+        # Пропущенные колонки и малые выборки — информационные замечания (severity ok):
+        # они не поднимают тревогу, но видны в отчёте и дашборде.
+        for col, reason in skipped.items():
+            schema_issues.append(
+                Issue(check="column_skipped", severity="ok", column=col,
+                      message=f"Колонка '{col}' не анализируется: {reason}.")
+            )
+        underpowered = [
+            c.column for c in column_reports
+            if any(t.details.get("underpowered") for t in c.tests)
+        ]
+        if underpowered:
+            quality_issues.append(
+                Issue(
+                    check="small_batch", severity="ok", value=float(len(underpowered)),
+                    message=(
+                        f"Батч мал для надёжной оценки PSI/JS по колонкам: {', '.join(underpowered)}. "
+                        f"Порог warning поднят до шумового уровня ({cfg.noise_quantile:.0%}-й процентиль без дрейфа)."
+                    ),
+                )
+            )
+
         overall = worst(
             [
                 *(i.severity for i in schema_issues),
@@ -139,6 +162,8 @@ class DriftGuardian:
             "numeric_columns": numeric_cols,
             "categorical_columns": categorical_cols,
             "skipped_columns": skipped_cols,
+            "skipped_reasons": skipped,
+            "underpowered_columns": underpowered,
             "excluded_columns": sorted(excluded),
             "target_column": cfg.target_column,
             "prediction_column": cfg.prediction_column,

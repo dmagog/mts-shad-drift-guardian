@@ -14,3 +14,4 @@ reports_out/
 .ipynb_checkpoints/
 notebooks/output/
 report/*.html.tmp
+.venv-bench/

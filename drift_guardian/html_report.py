@@ -20,6 +20,8 @@ from .plots import (
     feature_importance_figure,
     numeric_distribution_figure,
     severity_from_label,
+    timeline_psi_figure,
+    timeline_severity_figure,
 )
 
 SUMMARY_HEADERS = [
@@ -339,3 +341,93 @@ def _json_default(obj: Any):
 def report_to_json(report: dict, indent: int = 2) -> str:
     """Сериализует словарь отчёта в JSON (кириллица без экранирования)."""
     return json.dumps(report, ensure_ascii=False, indent=indent, default=_json_default)
+
+
+_TIMELINE_TEMPLATE = Template(
+    """<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #0b0b0b; background: #f9f9f7; margin: 0; padding: 24px 32px; }
+  main { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 28px 0 12px; }
+  .muted { color: #52514e; font-size: 13px; }
+  .banner { padding: 14px 18px; border-radius: 8px; margin: 16px 0; border: 1px solid rgba(11,11,11,.1); font-size: 15px; }
+  .banner.ok { background: #e8f6e8; } .banner.warning { background: #fff4d6; } .banner.critical { background: #fbe4e4; }
+  table { border-collapse: collapse; width: 100%; background: #fcfcfb; font-size: 13px; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid #e1e0d9; text-align: left; vertical-align: top; }
+  th { color: #52514e; font-weight: 600; } td.num { font-variant-numeric: tabular-nums; text-align: right; }
+  tr.critical { background: #fbe4e4; } tr.warning { background: #fff4d6; }
+  details { background: #fcfcfb; border: 1px solid #e1e0d9; border-radius: 8px; padding: 8px 12px; margin: 8px 0; }
+  summary { cursor: pointer; font-weight: 600; } ul { padding-left: 20px; } li { margin: 4px 0; }
+</style>
+</head>
+<body><main>
+<header><h1>{{ title }}</h1><p class="muted">Сформирован {{ generated_at }} · эталон {{ reference_rows }} строк · периодов: {{ periods|length }}</p></header>
+<section class="banner {{ last.overall_severity }}"><strong>Последний период {{ last.label }}: {{ last_label }}</strong> — {{ last.recommendation }}</section>
+<section><h2>Статус по периодам</h2>{{ severity_html|safe }}</section>
+<section><h2>PSI по периодам</h2>{{ psi_html|safe }}</section>
+<section>
+  <h2>Сводка</h2>
+  <table>
+    <thead><tr><th>Период</th><th>Строк</th><th>Статус</th><th>Таргет</th><th>critical</th><th>warning</th><th>Adversarial AUC</th><th>Алертов</th></tr></thead>
+    <tbody>{% for p in periods %}<tr class="{{ p.overall_severity }}"><td>{{ p.label }}</td><td class="num">{{ p.rows }}</td><td>{{ p.status_label }}</td><td>{{ p.target_label }}</td><td class="num">{{ p.n_critical }}</td><td class="num">{{ p.n_warning }}</td><td class="num">{{ p.auc }}</td><td class="num">{{ p.alerts|length }}</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+<section>
+  <h2>Алерты по периодам</h2>
+  {% for p in periods %}<details {% if p.overall_severity != 'ok' %}open{% endif %}><summary>{{ p.status_label }} · {{ p.label }}</summary>{% if p.alerts %}<ul>{% for a in p.alerts %}<li>{{ a }}</li>{% endfor %}</ul>{% else %}<p class="muted">Алертов нет.</p>{% endif %}</details>{% endfor %}
+</section>
+<footer class="muted"><p>Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС</p></footer>
+</main></body></html>
+"""
+)
+
+
+def render_timeline_html(
+    timeline: dict,
+    *,
+    title: str = "Data Drift Guardian — мониторинг во времени",
+    plotlyjs: str = "inline",
+) -> str:
+    """HTML-отчёт по серии батчей: статус и PSI по периодам, сводная таблица, алерты."""
+    thresholds = (timeline.get("meta", {}).get("config") or {}).get("thresholds") or {}
+    figures = [
+        timeline_severity_figure(timeline),
+        timeline_psi_figure(
+            timeline,
+            psi_warning=thresholds.get("psi_warning", 0.1),
+            psi_critical=thresholds.get("psi_critical", 0.2),
+        ),
+    ]
+    severity_html, psi_html = _figures_to_html(figures, plotlyjs)
+    periods = [
+        {
+            **p,
+            "status_label": STATUS_LABELS[p["overall_severity"]],
+            "target_label": STATUS_LABELS[p["target_severity"]] if p.get("target_severity") else "—",
+            "auc": _fmt(p.get("adversarial_auc")),
+        }
+        for p in timeline["periods"]
+    ]
+    last = periods[-1] if periods else {"overall_severity": "ok", "label": "—", "recommendation": ""}
+    return _TIMELINE_TEMPLATE.render(
+        title=title,
+        generated_at=timeline.get("meta", {}).get("generated_at", ""),
+        reference_rows=timeline.get("reference_rows", 0),
+        periods=periods,
+        last=last,
+        last_label=STATUS_LABELS[last["overall_severity"]],
+        severity_html=severity_html,
+        psi_html=psi_html,
+    )
+
+
+def save_timeline_html(path: str | Path, timeline: dict, **kwargs: Any) -> Path:
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(render_timeline_html(timeline, **kwargs), encoding="utf-8")
+    return target

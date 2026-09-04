@@ -205,3 +205,85 @@ def style_severity(frame: pd.DataFrame, column: str = "статус"):
         return [f"background-color: {tint}"] * len(row)
 
     return frame.style.apply(_row_style, axis=1)
+
+
+# ---------- временной ряд ----------
+
+SERIES_ORDER = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
+_RANK_FOR_BAR = {"ok": 1, "warning": 2, "critical": 3}
+
+
+def timeline_psi_figure(
+    timeline: dict,
+    top_n: int = 6,
+    psi_warning: float = 0.1,
+    psi_critical: float = 0.2,
+    title: str | None = "PSI по периодам: признаки с наибольшим дрейфом",
+) -> go.Figure:
+    """Линии PSI по периодам для top-N признаков и пунктирные пороги."""
+    periods = [p["label"] for p in timeline["periods"]]
+    max_psi = {
+        col: max(p["psi_by_column"].get(col, 0.0) for p in timeline["periods"])
+        for col in timeline["columns"]
+    }
+    top = sorted(max_psi, key=max_psi.get, reverse=True)[:top_n]
+    fig = go.Figure()
+    for color, col in zip(SERIES_ORDER, top, strict=False):
+        fig.add_scatter(
+            x=periods,
+            y=[p["psi_by_column"].get(col) for p in timeline["periods"]],
+            mode="lines+markers",
+            name=col,
+            line=dict(color=color, width=2),
+            marker=dict(size=8),
+            hovertemplate="%{y:.3f}<extra>" + col + "</extra>",
+        )
+    for level, label in ((psi_warning, "warning"), (psi_critical, "critical")):
+        fig.add_hline(
+            y=level, line=dict(color="#898781", dash="dash", width=1),
+            annotation_text=label, annotation_position="top left",
+            annotation_font_color="#898781",
+        )
+    return _apply_layout(fig, title, "период", "PSI")
+
+
+def timeline_severity_figure(timeline: dict, title: str | None = "Статус по периодам") -> go.Figure:
+    """Столбцы уровня серьёзности по периодам: цвет статуса плюс подпись с иконкой."""
+    periods = [p["label"] for p in timeline["periods"]]
+    severities = [p["overall_severity"] for p in timeline["periods"]]
+    fig = go.Figure(
+        go.Bar(
+            x=periods,
+            y=[_RANK_FOR_BAR[s] for s in severities],
+            marker_color=[STATUS_COLORS[s] for s in severities],
+            text=[STATUS_LABELS[s] for s in severities],
+            textposition="outside",
+            cliponaxis=False,
+            customdata=[[p["n_critical"], p["n_warning"]] for p in timeline["periods"]],
+            hovertemplate="%{text}<br>критичных признаков: %{customdata[0]}, "
+                          "предупреждений: %{customdata[1]}<extra></extra>",
+        )
+    )
+    _apply_layout(fig, title, "период", "")
+    fig.update_layout(showlegend=False, hovermode="closest", bargap=0.35)
+    fig.update_yaxes(tickvals=[1, 2, 3], ticktext=["ok", "warning", "critical"], range=[0, 3.7])
+    return fig
+
+
+def timeline_frame(timeline: dict) -> pd.DataFrame:
+    """Таблица по периодам для дашборда и отчёта."""
+    rows = []
+    for p in timeline["periods"]:
+        rows.append(
+            {
+                "период": p["label"],
+                "строк": p["rows"],
+                "статус": STATUS_LABELS[p["overall_severity"]],
+                "таргет": STATUS_LABELS[p["target_severity"]] if p["target_severity"] else "—",
+                "critical": p["n_critical"],
+                "warning": p["n_warning"],
+                "adversarial AUC": p["adversarial_auc"],
+                "алертов": len(p["alerts"]),
+            }
+        )
+    return pd.DataFrame(rows)

@@ -3,11 +3,11 @@
 Запуск:
     streamlit run app/streamlit_app.py
 
-Слева — источник данных (демо-сценарий или свои CSV/Parquet), роли колонок
-и пороги алертов; справа — сводный статус, алерты, блок целевой переменной
-и вкладки с деталями. «Поплывшие» признаки подсвечены красным (critical)
-и жёлтым (warning) — всегда вместе с иконкой и подписью, чтобы статус
-читался и без цвета.
+Два режима: «Два батча» (эталон против одного батча) и «Временной ряд» (эталон
+против потока батчей по календарным периодам). Слева — источник данных, роли
+колонок и пороги; справа — статусы, алерты, графики и детали. «Поплывшие»
+признаки подсвечены красным (critical) и жёлтым (warning) — всегда вместе
+с иконкой и подписью, чтобы статус читался и без цвета.
 """
 from __future__ import annotations
 
@@ -16,9 +16,13 @@ import io
 import pandas as pd
 import streamlit as st
 
-from drift_guardian import DriftConfig, Thresholds, analyze
-from drift_guardian.demo import SCENARIOS, make_demo
-from drift_guardian.html_report import render_html_report, report_to_json
+from drift_guardian import DriftConfig, Thresholds, analyze, run_timeline, split_by_period
+from drift_guardian.demo import SCENARIOS, make_demo, make_timeline_demo
+from drift_guardian.html_report import (
+    render_html_report,
+    render_timeline_html,
+    report_to_json,
+)
 from drift_guardian.plots import (
     STATUS_LABELS,
     categorical_distribution_figure,
@@ -27,7 +31,11 @@ from drift_guardian.plots import (
     issues_frame,
     numeric_distribution_figure,
     style_severity,
+    timeline_frame,
+    timeline_psi_figure,
+    timeline_severity_figure,
 )
+from drift_guardian.timeline import FREQ_LABELS
 
 st.set_page_config(page_title="Data Drift Guardian", page_icon="🛡️", layout="wide")
 
@@ -43,8 +51,10 @@ TEST_FORMATS = {
     "статистика": st.column_config.NumberColumn(format="%.4f"),
     "p-value": st.column_config.NumberColumn(format="%.2e"),
 }
+TIMELINE_FORMATS = {"adversarial AUC": st.column_config.NumberColumn(format="%.3f")}
 FILE_TYPES = ["csv", "parquet", "pq"]
 NO_TARGET = "— нет —"
+MODE_PAIR, MODE_STREAM = "Два батча", "Временной ряд"
 SPECIAL_TITLES = {"target_drift": "🎯 Целевая переменная", "prediction_drift": "🔮 Предсказания модели"}
 
 
@@ -53,6 +63,11 @@ SPECIAL_TITLES = {"target_drift": "🎯 Целевая переменная", "p
 @st.cache_data(show_spinner="Генерируем демо-данные…")
 def load_demo(scenario: str, ref_rows: int, cur_rows: int, seed: int):
     return make_demo(scenario, ref_rows, cur_rows, seed)
+
+
+@st.cache_data(show_spinner="Генерируем демо-поток…")
+def load_timeline_demo(n_periods: int, rows_per_period: int, seed: int):
+    return make_timeline_demo(n_periods, rows_per_period, seed)
 
 
 @st.cache_data(show_spinner="Читаем файл…")
@@ -66,6 +81,13 @@ def read_table(data: bytes, name: str) -> pd.DataFrame:
 @st.cache_data(show_spinner="Считаем метрики дрейфа…")
 def run_analysis(reference: pd.DataFrame, current: pd.DataFrame, config_dict: dict) -> dict:
     return analyze(reference, current, DriftConfig.from_dict(config_dict))
+
+
+@st.cache_data(show_spinner="Считаем метрики по периодам…")
+def run_stream(reference: pd.DataFrame, stream: pd.DataFrame, date_column: str, freq: str,
+               config_dict: dict) -> dict:
+    batches = split_by_period(stream, date_column, freq)
+    return run_timeline(reference, batches, DriftConfig.from_dict(config_dict))
 
 
 def fmt_int(value: int) -> str:
@@ -97,32 +119,68 @@ def tests_frame(tests: list[dict]) -> pd.DataFrame:
 
 def sidebar():
     st.sidebar.title("Настройки")
+    params = st.query_params  # deep-link: ?mode=stream&scenario=concept_drift
+    mode = st.sidebar.radio(
+        "Режим", [MODE_PAIR, MODE_STREAM], horizontal=True,
+        index=1 if params.get("mode") == "stream" else 0,
+    )
     st.sidebar.subheader("Данные")
     source = st.sidebar.radio(
-        "Источник данных", ["Демо-сценарий", "Свои файлы"], horizontal=True,
-        label_visibility="collapsed",
+        "Источник данных", ["Демо", "Свои файлы"], horizontal=True, label_visibility="collapsed"
     )
-    reference = current = None
+    is_demo = source == "Демо"
+    reference = current = stream = None
+    date_column = None
+    freq = "M"
     label = ""
-    is_demo = source == "Демо-сценарий"
-    if is_demo:
-        scenario = st.sidebar.selectbox(
-            "Сценарий дрейфа",
-            list(SCENARIOS),
-            index=list(SCENARIOS).index("mixed"),
-            format_func=lambda s: f"{SCENARIOS[s].split(' — ')[0]} ({s})",
-        )
-        st.sidebar.caption(SCENARIOS[scenario])
-        seed = int(st.sidebar.number_input("Seed генератора", min_value=0, value=42, step=1))
-        reference, current = load_demo(scenario, 20_000, 5_000, seed)
-        label = f"демо-сценарий «{scenario}», seed {seed}"
+
+    if mode == MODE_PAIR:
+        if is_demo:
+            default_scenario = params.get("scenario", "mixed")
+            if default_scenario not in SCENARIOS:
+                default_scenario = "mixed"
+            scenario = st.sidebar.selectbox(
+                "Сценарий дрейфа",
+                list(SCENARIOS),
+                index=list(SCENARIOS).index(default_scenario),
+                format_func=lambda s: f"{SCENARIOS[s].split(' — ')[0]} ({s})",
+            )
+            st.sidebar.caption(SCENARIOS[scenario])
+            seed = int(st.sidebar.number_input("Seed генератора", min_value=0, value=42, step=1))
+            reference, current = load_demo(scenario, 20_000, 5_000, seed)
+            label = f"демо-сценарий «{scenario}», seed {seed}"
+        else:
+            ref_file = st.sidebar.file_uploader("Эталон (CSV / Parquet)", type=FILE_TYPES)
+            cur_file = st.sidebar.file_uploader("Текущий батч (CSV / Parquet)", type=FILE_TYPES)
+            if ref_file is not None and cur_file is not None:
+                reference = read_table(ref_file.getvalue(), ref_file.name)
+                current = read_table(cur_file.getvalue(), cur_file.name)
+                label = f"{ref_file.name} → {cur_file.name}"
     else:
-        ref_file = st.sidebar.file_uploader("Эталон (CSV / Parquet)", type=FILE_TYPES)
-        cur_file = st.sidebar.file_uploader("Текущий батч (CSV / Parquet)", type=FILE_TYPES)
-        if ref_file is not None and cur_file is not None:
-            reference = read_table(ref_file.getvalue(), ref_file.name)
-            current = read_table(cur_file.getvalue(), cur_file.name)
-            label = f"{ref_file.name} → {cur_file.name}"
+        if is_demo:
+            n_periods = int(st.sidebar.slider("Периодов (месяцев)", 4, 12, 8))
+            seed = int(st.sidebar.number_input("Seed генератора", min_value=0, value=42, step=1))
+            reference, stream = load_timeline_demo(n_periods, 3_000, seed)
+            date_column, freq = "date", "M"
+            st.sidebar.caption(
+                "Демо-поток: аудитория постепенно стареет и богатеет, с 5-го месяца растут "
+                "пропуски, с 6-го появляется новый канал, с 7-го — концептуальный дрейф."
+            )
+            label = f"демо-поток на {n_periods} мес., seed {seed}"
+        else:
+            ref_file = st.sidebar.file_uploader("Эталон (CSV / Parquet)", type=FILE_TYPES)
+            stream_file = st.sidebar.file_uploader("Поток с колонкой даты (CSV / Parquet)", type=FILE_TYPES)
+            if ref_file is not None and stream_file is not None:
+                reference = read_table(ref_file.getvalue(), ref_file.name)
+                stream = read_table(stream_file.getvalue(), stream_file.name)
+                columns = [str(c) for c in stream.columns]
+                guess = next((c for c in columns if "date" in c.lower() or "dt" == c.lower()
+                              or "time" in c.lower()), columns[0])
+                date_column = st.sidebar.selectbox("Колонка даты", columns, index=columns.index(guess))
+                freq = st.sidebar.selectbox(
+                    "Период", list(FREQ_LABELS), index=2, format_func=lambda f: FREQ_LABELS[f]
+                )
+                label = f"{ref_file.name} → поток {stream_file.name} по {FREQ_LABELS[freq]}"
 
     target_column = None
     exclude_columns: list[str] = []
@@ -167,10 +225,13 @@ def sidebar():
         exclude_columns=exclude_columns or None,
     )
     st.sidebar.caption("Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС")
-    return reference, current, config, label
+    return {
+        "mode": mode, "reference": reference, "current": current, "stream": stream,
+        "date_column": date_column, "freq": freq, "config": config, "label": label,
+    }
 
 
-# ---------- блоки страницы ----------
+# ---------- блоки детального отчёта ----------
 
 def render_special_blocks(report: dict, reference: pd.DataFrame, current: pd.DataFrame) -> None:
     feature_ok = all(c["severity"] != "critical" for c in report["columns"])
@@ -207,7 +268,7 @@ def render_summary_tab(report: dict) -> None:
     st.caption(
         "🛑 critical — сильный сдвиг по метрикам размера эффекта · ⚠️ warning — умеренный сдвиг · "
         "✅ ok — стабильно. p-value-тесты (KS, χ²) засчитываются только вместе с заметным "
-        "размером эффекта, чтобы не шуметь на больших выборках."
+        "размером эффекта; на малых батчах порог warning поднимается до шумового уровня."
     )
 
 
@@ -240,13 +301,8 @@ def render_quality_tab(report: dict) -> None:
     else:
         st.success("Замечаний к схеме и качеству данных нет.")
     meta = report["meta"]
-    notes = []
-    if meta.get("skipped_columns"):
-        notes.append(f"не анализировались (неподдерживаемый тип): {', '.join(meta['skipped_columns'])}")
     if meta.get("excluded_columns"):
-        notes.append(f"исключены по настройке: {', '.join(meta['excluded_columns'])}")
-    if notes:
-        st.caption("; ".join(notes).capitalize())
+        st.caption(f"Исключены по настройке: {', '.join(meta['excluded_columns'])}")
 
 
 def render_adversarial_tab(report: dict) -> None:
@@ -273,48 +329,53 @@ def render_adversarial_tab(report: dict) -> None:
     )
 
 
-def render_export_tab(report: dict, reference: pd.DataFrame, current: pd.DataFrame) -> None:
+def render_export_tab(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
+                      config: DriftConfig, timeline: dict | None) -> None:
     st.markdown(
         "HTML — самодостаточный отчёт с интерактивными графиками, "
-        "JSON — полный словарь метрик и флагов (выходной контракт системы)."
+        "JSON — полный словарь метрик и флагов (выходной контракт системы), "
+        "YAML — текущие настройки, чтобы хранить их рядом с моделью."
     )
     inline = st.checkbox("Встроить Plotly.js в HTML (работает офлайн, файл ≈ 4 МБ)", value=False)
+    plotlyjs = "inline" if inline else "cdn"
     report_key = report["meta"].get("generated_at", "")
     if st.button("Сформировать HTML-отчёт"):
-        html = render_html_report(
-            report, reference, current, plotlyjs="inline" if inline else "cdn"
-        )
+        html = render_html_report(report, reference, current, plotlyjs=plotlyjs)
         st.session_state["html_report"] = (report_key, html)
     cached = st.session_state.get("html_report")
     if cached and cached[0] == report_key:
         st.download_button(
-            "⬇️ Скачать HTML-отчёт",
-            data=cached[1].encode("utf-8"),
-            file_name="drift_report.html",
-            mime="text/html",
+            "⬇️ Скачать HTML-отчёт", data=cached[1].encode("utf-8"),
+            file_name="drift_report.html", mime="text/html",
         )
     st.download_button(
-        "⬇️ Скачать JSON",
-        data=report_to_json(report).encode("utf-8"),
-        file_name="drift_report.json",
-        mime="application/json",
+        "⬇️ Скачать JSON", data=report_to_json(report).encode("utf-8"),
+        file_name="drift_report.json", mime="application/json",
+    )
+    if timeline is not None:
+        st.download_button(
+            "⬇️ Скачать HTML по временному ряду",
+            data=render_timeline_html(timeline, plotlyjs=plotlyjs).encode("utf-8"),
+            file_name="drift_timeline.html", mime="text/html",
+        )
+        st.download_button(
+            "⬇️ Скачать JSON по временному ряду",
+            data=report_to_json(timeline).encode("utf-8"),
+            file_name="drift_timeline.json", mime="application/json",
+        )
+    import yaml
+
+    st.download_button(
+        "⬇️ Скачать конфиг YAML",
+        data=yaml.safe_dump(config.to_dict(), allow_unicode=True, sort_keys=False).encode("utf-8"),
+        file_name="drift_config.yaml", mime="application/x-yaml",
     )
     with st.expander("Предпросмотр JSON"):
         st.json(report, expanded=False)
 
 
-# ---------- страница ----------
-
-def main() -> None:
-    reference, current, config, source_label = sidebar()
-    st.title("🛡️ Data Drift Guardian")
-    st.caption("Детекция дрейфа и контроль качества данных: эталон против текущего продакшн-батча")
-
-    if reference is None or current is None:
-        st.info("Выберите демо-сценарий или загрузите эталон и текущий батч в боковой панели.")
-        return
-
-    report = run_analysis(reference, current, config.to_dict())
+def render_detail(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
+                  config: DriftConfig, timeline: dict | None = None) -> None:
     severity = report["overall_severity"]
     BANNER[severity](f"**{STATUS_LABELS[severity].upper()}** — {report['recommendation']}")
 
@@ -331,6 +392,11 @@ def main() -> None:
         with st.expander(f"Алерты ({len(report['alerts'])})", expanded=True):
             for alert in report["alerts"]:
                 st.markdown(f"- {alert}")
+    if meta.get("underpowered_columns"):
+        st.info(
+            "Батч мал для надёжной оценки PSI/JS по колонкам: "
+            f"{', '.join(meta['underpowered_columns'])}. Порог warning поднят до шумового уровня."
+        )
 
     render_special_blocks(report, reference, current)
 
@@ -346,9 +412,74 @@ def main() -> None:
     with tabs[3]:
         render_adversarial_tab(report)
     with tabs[4]:
-        render_export_tab(report, reference, current)
+        render_export_tab(report, reference, current, config, timeline)
 
-    st.caption(f"Источник: {source_label} · сформировано {meta.get('generated_at', '')}")
+
+def render_timeline_section(timeline: dict, config: DriftConfig) -> str:
+    """Графики и таблица по периодам; возвращает выбранный период для детализации."""
+    periods = timeline["periods"]
+    last = periods[-1]
+    BANNER[last["overall_severity"]](
+        f"**Последний период {last['label']}: {STATUS_LABELS[last['overall_severity']].upper()}** — "
+        f"{last['recommendation']}"
+    )
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Периодов", len(periods))
+    k2.metric("Критичных периодов", sum(p["overall_severity"] == "critical" for p in periods))
+    first_bad = next((p["label"] for p in periods if p["overall_severity"] != "ok"), "—")
+    k3.metric("Первый период с дрейфом", first_bad)
+    k4.metric("Строк в эталоне", fmt_int(timeline["reference_rows"]))
+
+    left, right = st.columns([2, 3])
+    left.plotly_chart(timeline_severity_figure(timeline), width="stretch", theme=None)
+    right.plotly_chart(
+        timeline_psi_figure(
+            timeline, psi_warning=config.thresholds.psi_warning,
+            psi_critical=config.thresholds.psi_critical,
+        ),
+        width="stretch", theme=None,
+    )
+    st.dataframe(
+        style_severity(timeline_frame(timeline)), width="stretch", hide_index=True,
+        column_config=TIMELINE_FORMATS,
+    )
+    labels = [p["label"] for p in periods]
+    return st.selectbox("Период для детального разбора", labels, index=len(labels) - 1)
+
+
+# ---------- страница ----------
+
+def main() -> None:
+    state = sidebar()
+    reference, config = state["reference"], state["config"]
+    st.title("🛡️ Data Drift Guardian")
+    st.caption("Детекция дрейфа и контроль качества данных: эталон против текущего продакшн-батча")
+
+    if state["mode"] == MODE_PAIR:
+        current = state["current"]
+        if reference is None or current is None:
+            st.info("Выберите демо-сценарий или загрузите эталон и текущий батч в боковой панели.")
+            return
+        report = run_analysis(reference, current, config.to_dict())
+        render_detail(report, reference, current, config)
+    else:
+        stream = state["stream"]
+        if reference is None or stream is None:
+            st.info("Выберите демо-поток или загрузите эталон и поток с колонкой даты.")
+            return
+        timeline = run_stream(reference, stream, state["date_column"], state["freq"], config.to_dict())
+        if not timeline["periods"]:
+            st.warning("В потоке не нашлось ни одного периода с данными.")
+            return
+        st.subheader("📈 Динамика по периодам")
+        chosen = render_timeline_section(timeline, config)
+        batches = dict(split_by_period(stream, state["date_column"], state["freq"]))
+        current = batches[chosen]
+        st.subheader(f"Период {chosen}: детальный разбор")
+        report = run_analysis(reference, current, config.to_dict())
+        render_detail(report, reference, current, config, timeline)
+
+    st.caption(f"Источник: {state['label']} · сформировано {report['meta'].get('generated_at', '')}")
 
 
 main()

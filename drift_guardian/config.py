@@ -60,6 +60,16 @@ class DriftConfig:
     categorical_int_unique_limit: int = 10
     # Минимум непустых значений в колонке для запуска статтестов.
     min_samples: int = 20
+    # Защита от малых выборок: бутстреп шумового уровня PSI/JS, порог warning
+    # поднимается до 95-го процентиля метрики при отсутствии дрейфа.
+    sample_size_guard: bool = True
+    bootstrap_samples: int = 200
+    # Квантиль шума: порог warning поднимается до этого процентиля метрики без дрейфа,
+    # т. е. доля ложных срабатываний на колонку не выше (1 − noise_quantile).
+    noise_quantile: float = 0.99
+    # Автодетекция идентификаторов: доля уникальных значений и минимум строк.
+    identifier_unique_share: float = 0.98
+    identifier_min_rows: int = 100
     # Включить adversarial-валидацию (можно отключить ради скорости).
     adversarial_enabled: bool = True
     # Сабсэмплинг для adversarial-валидации (скорость на больших данных).

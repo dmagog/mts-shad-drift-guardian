@@ -33,11 +33,19 @@ blockquote { border-left: 3px solid #2a78d6; margin: 12px 0; padding: 4px 16px; 
 """
 
 
+def _embed(text: str, marker: str, filename: str, demote: int = 1) -> str:
+    """Вставляет содержимое markdown-файла вместо маркера, понижая уровни заголовков."""
+    path = REPORT_DIR / filename
+    if not path.exists():
+        return text.replace(marker, f"_Файл {filename} не найден — запустите соответствующий скрипт._")
+    lines = [line for line in path.read_text(encoding="utf-8").splitlines() if not line.startswith("# ")]
+    body = "\n".join(re.sub(r"^(#+) ", lambda m: "#" * demote + m.group(1) + " ", line) for line in lines)
+    return text.replace(marker, body)
+
+
 def embed_experiments(text: str) -> str:
-    experiments = (REPORT_DIR / "experiments.md").read_text(encoding="utf-8")
-    lines = [line for line in experiments.splitlines() if not line.startswith("# ")]
-    body = "\n".join(re.sub(r"^(#+) ", lambda m: "#" + m.group(1) + " ", line) for line in lines)
-    return text.replace("<!-- EXPERIMENTS -->", body)
+    text = _embed(text, "<!-- EXPERIMENTS -->", "experiments.md")
+    return _embed(text, "<!-- BENCHMARK -->", "benchmark_evidently.md")
 
 
 def main() -> None:

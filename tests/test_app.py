@@ -25,3 +25,11 @@ def test_dashboard_no_drift_scenario_is_green():
     app.sidebar.selectbox[0].set_value("no_drift").run()
     assert not app.exception, [e.value for e in app.exception]
     assert app.success, "сценарий no_drift должен давать зелёный баннер"
+
+
+def test_dashboard_timeline_mode_runs():
+    app = _run_app()
+    app.sidebar.radio[0].set_value("Временной ряд").run()
+    assert not app.exception, [e.value for e in app.exception]
+    assert any("Динамика по периодам" in s.value for s in app.subheader)
+    assert len(app.get("plotly_chart")) >= 3  # статусы, PSI по периодам, детализация

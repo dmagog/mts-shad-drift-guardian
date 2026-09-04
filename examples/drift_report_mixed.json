@@ -5,11 +5,11 @@
     "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 7.7% до 19.3% (+11.6 п.п.).",
     "КРИТИЧНО: 16.8% значений 'loan_amount' вне диапазона эталона [5857, 1.23218e+06].",
     "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 11.0% строк текущего батча.",
-    "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=429 (p=<1e-16), jensen_shannon=0.13.",
-    "КРИТИЧНО: дрейф по признаку 'age' — ks=0.239 (p=<1e-16), psi=0.337, jensen_shannon=0.243, wasserstein_norm=0.605.",
-    "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.185 (p=<1e-16), psi=0.193, jensen_shannon=0.185, wasserstein_norm=0.465.",
-    "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.221 (p=<1e-16), psi=0.388, jensen_shannon=0.26, wasserstein_norm=0.428.",
-    "КРИТИЧНО: дрейф по признаку 'channel' — chi2=2.25e+03 (p=<1e-16), psi=0.782, jensen_shannon=0.238.",
+    "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=429 (p<1e-16), jensen_shannon=0.13.",
+    "КРИТИЧНО: дрейф по признаку 'age' — ks=0.239 (p<1e-16), psi=0.337, jensen_shannon=0.243, wasserstein_norm=0.605.",
+    "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.185 (p<1e-16), psi=0.193, jensen_shannon=0.185, wasserstein_norm=0.465.",
+    "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.221 (p<1e-16), psi=0.388, jensen_shannon=0.26, wasserstein_norm=0.428.",
+    "КРИТИЧНО: дрейф по признаку 'channel' — chi2=2.25e+03 (p<1e-16), psi=0.782, jensen_shannon=0.238.",
     "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.845); сильнее всего изменились: loan_amount, income, channel."
   ],
   "schema": [],
@@ -59,7 +59,14 @@
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
-            "n_bins": 10
+            "n_bins": 10,
+            "noise_floor": 0.0053,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.3024,
+              0.3755
+            ],
+            "underpowered": false
           }
         },
         {
@@ -68,7 +75,15 @@
           "severity": "critical",
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
-          "details": {}
+          "details": {
+            "noise_floor": 0.0308,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.2303,
+              0.2555
+            ],
+            "underpowered": false
+          }
         },
         {
           "name": "wasserstein_norm",
@@ -104,7 +119,14 @@
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
-            "n_bins": 10
+            "n_bins": 10,
+            "noise_floor": 0.0059,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.166,
+              0.2247
+            ],
+            "underpowered": false
           }
         },
         {
@@ -113,7 +135,15 @@
           "severity": "warning",
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
-          "details": {}
+          "details": {
+            "noise_floor": 0.0326,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.1717,
+              0.1988
+            ],
+            "underpowered": false
+          }
         },
         {
           "name": "wasserstein_norm",
@@ -149,7 +179,14 @@
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
-            "n_bins": 10
+            "n_bins": 10,
+            "noise_floor": 0.0047,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.3561,
+              0.4323
+            ],
+            "underpowered": false
           }
         },
         {
@@ -158,7 +195,15 @@
           "severity": "critical",
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
-          "details": {}
+          "details": {
+            "noise_floor": 0.029,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.2496,
+              0.274
+            ],
+            "underpowered": false
+          }
         },
         {
           "name": "wasserstein_norm",
@@ -194,7 +239,14 @@
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
-            "n_bins": 10
+            "n_bins": 10,
+            "noise_floor": 0.0053,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0009,
+              0.006
+            ],
+            "underpowered": false
           }
         },
         {
@@ -203,7 +255,15 @@
           "severity": "ok",
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
-          "details": {}
+          "details": {
+            "noise_floor": 0.031,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0126,
+              0.0328
+            ],
+            "underpowered": false
+          }
         },
         {
           "name": "wasserstein_norm",
@@ -239,7 +299,14 @@
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
-            "n_categories": 4
+            "n_categories": 4,
+            "noise_floor": 0.0025,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0001,
+              0.0035
+            ],
+            "underpowered": false
           }
         },
         {
@@ -248,7 +315,15 @@
           "severity": "ok",
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
-          "details": {}
+          "details": {
+            "noise_floor": 0.021,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0047,
+              0.025
+            ],
+            "underpowered": false
+          }
         }
       ]
     },
@@ -274,7 +349,14 @@
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
-            "n_categories": 4
+            "n_categories": 4,
+            "noise_floor": 0.0037,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0001,
+              0.0034
+            ],
+            "underpowered": false
           }
         },
         {
@@ -283,7 +365,15 @@
           "severity": "ok",
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
-          "details": {}
+          "details": {
+            "noise_floor": 0.0257,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0047,
+              0.0249
+            ],
+            "underpowered": false
+          }
         }
       ]
     },
@@ -309,7 +399,14 @@
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
-            "n_categories": 4
+            "n_categories": 4,
+            "noise_floor": 0.003,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0001,
+              0.0033
+            ],
+            "underpowered": false
           }
         },
         {
@@ -318,7 +415,15 @@
           "severity": "ok",
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
-          "details": {}
+          "details": {
+            "noise_floor": 0.0232,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.0036,
+              0.0243
+            ],
+            "underpowered": false
+          }
         }
       ]
     },
@@ -344,7 +449,14 @@
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
           "details": {
-            "n_categories": 4
+            "n_categories": 4,
+            "noise_floor": 0.0023,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.6623,
+              0.8534
+            ],
+            "underpowered": false
           }
         },
         {
@@ -353,7 +465,15 @@
           "severity": "critical",
           "p_value": null,
           "threshold": "warning >= 0.1, critical >= 0.2",
-          "details": {}
+          "details": {
+            "noise_floor": 0.0205,
+            "noise_quantile": 0.99,
+            "ci95": [
+              0.2285,
+              0.2485
+            ],
+            "underpowered": false
+          }
         }
       ]
     }
@@ -399,7 +519,7 @@
     ]
   },
   "meta": {
-    "generated_at": "2026-09-04T12:36:32+00:00",
+    "generated_at": "2026-09-04T13:26:05+00:00",
     "reference_rows": 20000,
     "current_rows": 5000,
     "numeric_columns": [
@@ -415,6 +535,8 @@
       "channel"
     ],
     "skipped_columns": [],
+    "skipped_reasons": {},
+    "underpowered_columns": [],
     "excluded_columns": [],
     "target_column": "target",
     "prediction_column": null,
@@ -444,6 +566,11 @@
       "max_categories": 20,
       "categorical_int_unique_limit": 10,
       "min_samples": 20,
+      "sample_size_guard": true,
+      "bootstrap_samples": 200,
+      "noise_quantile": 0.99,
+      "identifier_unique_share": 0.98,
+      "identifier_min_rows": 100,
       "adversarial_enabled": true,
       "adversarial_max_rows": 50000,
       "adversarial_n_jobs": 1,
@@ -479,7 +606,14 @@
         "p_value": null,
         "threshold": "warning >= 0.1, critical >= 0.2",
         "details": {
-          "n_categories": 2
+          "n_categories": 2,
+          "noise_floor": 0.0017,
+          "noise_quantile": 0.99,
+          "ci95": [
+            0.0789,
+            0.1175
+          ],
+          "underpowered": false
         }
       },
       {
@@ -488,7 +622,15 @@
         "severity": "warning",
         "p_value": null,
         "threshold": "warning >= 0.1, critical >= 0.2",
-        "details": {}
+        "details": {
+          "noise_floor": 0.0173,
+          "noise_quantile": 0.99,
+          "ci95": [
+            0.1186,
+            0.1445
+          ],
+          "underpowered": false
+        }
       }
     ]
   },

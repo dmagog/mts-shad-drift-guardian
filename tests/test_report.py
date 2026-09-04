@@ -93,3 +93,20 @@ def test_json_roundtrip():
     data = json.loads(report_to_json(report))
     assert data["overall_severity"] == report["overall_severity"]
     assert len(data["columns"]) == len(report["columns"])
+
+
+def test_timeline_figures_and_html():
+    from drift_guardian import DriftConfig, run_timeline_from_frame
+    from drift_guardian.demo import make_timeline_demo
+    from drift_guardian.html_report import render_timeline_html
+    from drift_guardian.plots import timeline_frame, timeline_psi_figure, timeline_severity_figure
+
+    reference, stream = make_timeline_demo(n_periods=3, rows_per_period=300, seed=4)
+    timeline = run_timeline_from_frame(
+        reference, stream, "date", "M", DriftConfig(adversarial_enabled=False)
+    )
+    assert len(timeline_psi_figure(timeline).data) >= 1
+    assert len(timeline_severity_figure(timeline).data[0].x) == 3
+    assert list(timeline_frame(timeline)["период"]) == ["2026-01", "2026-02", "2026-03"]
+    html = render_timeline_html(timeline, plotlyjs="cdn")
+    assert "2026-03" in html and "Статус по периодам" in html

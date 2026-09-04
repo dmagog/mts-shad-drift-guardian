@@ -84,3 +84,44 @@ def test_wasserstein_thresholds_aligned_with_psi():
     ref, cur = _frames(rng.normal(0, 1, 20000), rng.normal(0.2, 1, 20000))
     report = analyze_numeric_column("x", ref, cur, DriftConfig(), alpha_effective=0.05)
     assert report.severity == "ok"
+
+
+def test_small_batch_without_drift_is_ok_and_marked_underpowered():
+    rng = np.random.default_rng(8)
+    ref, cur = _frames(rng.normal(0, 1, 20000), rng.normal(0, 1, 150))
+    report = analyze_numeric_column("x", ref, cur, DriftConfig(), alpha_effective=0.05)
+    assert report.severity == "ok"
+    psi_test = next(t for t in report.tests if t.name == "psi")
+    assert psi_test.details["underpowered"] is True
+    assert psi_test.details["noise_floor"] > 0.1
+
+
+def test_small_batch_with_strong_shift_still_critical():
+    rng = np.random.default_rng(9)
+    ref, cur = _frames(rng.normal(0, 1, 20000), rng.normal(1.5, 1, 150))
+    report = analyze_numeric_column("x", ref, cur, DriftConfig(), alpha_effective=0.05)
+    assert report.severity == "critical"
+
+
+def test_noise_floor_decreases_with_sample_size():
+    from drift_guardian.drift_engines import bootstrap_noise, reference_bin_edges
+
+    rng = np.random.default_rng(10)
+    ref = rng.normal(0, 1, 20000)
+    edges = reference_bin_edges(ref, 10)
+    ref_counts, _ = np.histogram(ref, bins=edges)
+    floors = []
+    for n in (100, 500, 5000):
+        cur_counts, _ = np.histogram(rng.normal(0, 1, n), bins=edges)
+        floors.append(bootstrap_noise(ref_counts, cur_counts, np.random.default_rng(0))["psi_noise"])
+    assert floors[0] > floors[1] > floors[2]
+    assert floors[2] < 0.01
+
+
+def test_guard_can_be_disabled():
+    rng = np.random.default_rng(11)
+    ref, cur = _frames(rng.normal(0, 1, 20000), rng.normal(0, 1, 150))
+    config = DriftConfig(sample_size_guard=False)
+    report = analyze_numeric_column("x", ref, cur, config, alpha_effective=0.05)
+    psi_test = next(t for t in report.tests if t.name == "psi")
+    assert "underpowered" not in psi_test.details

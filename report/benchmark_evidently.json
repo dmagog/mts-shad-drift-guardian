@@ -1,0 +1,1547 @@
+{
+  "summary": {
+    "psi": {
+      "n": 47,
+      "spearman": 0.9730762132475395,
+      "median_abs_diff": 4.7037711263852236e-05,
+      "max_abs_diff": 0.42601737320044114
+    },
+    "js": {
+      "n": 47,
+      "spearman": 0.958226128584048,
+      "median_abs_diff": 0.0036934444275959523,
+      "max_abs_diff": 0.14592545342066143
+    },
+    "wasserstein": {
+      "n": 23,
+      "spearman": 0.99975293390605,
+      "median_abs_diff": 1.8544462814795715e-05,
+      "max_abs_diff": 4.9988548781909614e-05
+    },
+    "p": {
+      "n": 47,
+      "spearman": 0.9969900439916649,
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.10600689089495213
+    },
+    "decision_agreement": {
+      "agree": 45,
+      "total": 47
+    }
+  },
+  "results": [
+    {
+      "dataset": "демо: no_drift",
+      "n_ref": 20000,
+      "n_cur": 5000,
+      "rows": [
+        {
+          "column": "age",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.001,
+            "js": 0.0132,
+            "wasserstein": 0.0147,
+            "p_value": 0.9380860322568434,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.002787871841384499,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.018656142827343836,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.014710348860206677,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.9380860322568434,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "income",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0025,
+            "js": 0.0213,
+            "wasserstein": 0.0191,
+            "p_value": 0.7857996283827302,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.006066141127133566,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.018975677423204454,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.019087402238573734,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.7857996283827302,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "loan_amount",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0024,
+            "js": 0.0206,
+            "wasserstein": 0.0119,
+            "p_value": 0.7707685206822035,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.009769238390336596,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.022650919506851715,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.01187131651642794,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.7707685206822035,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "credit_history_years",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0038,
+            "js": 0.0261,
+            "wasserstein": 0.0368,
+            "p_value": 0.04967956343501523,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.005412097434923613,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.026623140968345508,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.036783589354789356,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.04967956343501523,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "num_dependents",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0006,
+            "js": 0.0101,
+            "wasserstein": null,
+            "p_value": 0.5238510163061532,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0005648650308478107,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.0084026314224809,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.4256188507544867,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "employment_type",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0005,
+            "js": 0.0099,
+            "wasserstein": null,
+            "p_value": 0.5434035147089931,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0005443327554628853,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.008248128234790078,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.44877121868084036,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "region",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0008,
+            "js": 0.0117,
+            "wasserstein": null,
+            "p_value": 0.37924136018795007,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0007585835097785542,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.009736993058482059,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.27323446929299794,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "channel",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0006,
+            "js": 0.0104,
+            "wasserstein": null,
+            "p_value": 0.30123257174862184,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0006003803923880905,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.008662778823480623,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.22326762735496034,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        }
+      ]
+    },
+    {
+      "dataset": "демо: mean_shift",
+      "n_ref": 20000,
+      "n_cur": 5000,
+      "rows": [
+        {
+          "column": "age",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.3729,
+            "js": 0.2548,
+            "wasserstein": 0.6321,
+            "p_value": 8.486867772668303e-225,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.6162018806959724,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.23231906395060606,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.6321390582814665,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 8.486867772668303e-225,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "income",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.191,
+            "js": 0.1839,
+            "wasserstein": 0.4484,
+            "p_value": 5.515308691195779e-106,
+            "severity": "warning"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.17737823051990137,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.1478457311415025,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.44838029395294127,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 5.515308691195779e-106,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "loan_amount",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0015,
+            "js": 0.0163,
+            "wasserstein": 0.017,
+            "p_value": 0.6396526938381099,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.009218697820452725,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.019483831916055024,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.016991716674652046,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.6396526938381099,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "credit_history_years",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0026,
+            "js": 0.0215,
+            "wasserstein": 0.0175,
+            "p_value": 0.49440919407779693,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0010924716752425154,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.011675550498785879,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.01753821069928843,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.49440919407779693,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "num_dependents",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0008,
+            "js": 0.012,
+            "wasserstein": null,
+            "p_value": 0.361862906111199,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0007993800637027594,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.00999593701566837,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.26127071361968773,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "employment_type",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0008,
+            "js": 0.0117,
+            "wasserstein": null,
+            "p_value": 0.38995778837789247,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0007583674661449339,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.009736037851183687,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.29029118847186985,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "region",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0005,
+            "js": 0.0095,
+            "wasserstein": null,
+            "p_value": 0.5693346622636446,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0005033540561736767,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.007932018852297452,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.47167624879084835,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "channel",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0001,
+            "js": 0.0039,
+            "wasserstein": null,
+            "p_value": 0.8422769598629231,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 8.5781204712583e-05,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.0032745385835022483,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.8068386782631979,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        }
+      ]
+    },
+    {
+      "dataset": "демо: new_category",
+      "n_ref": 20000,
+      "n_cur": 5000,
+      "rows": [
+        {
+          "column": "age",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0015,
+            "js": 0.0165,
+            "wasserstein": 0.0112,
+            "p_value": 0.9995663152171265,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0026498568116247144,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.018146406423786805,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.011198944441005911,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.9995663152171265,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "income",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0019,
+            "js": 0.0183,
+            "wasserstein": 0.0159,
+            "p_value": 0.7066284971114478,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.004925557734268178,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.026228913600446692,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.01593748823542475,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.7066284971114478,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "loan_amount",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0051,
+            "js": 0.0303,
+            "wasserstein": 0.0191,
+            "p_value": 0.4414540767752362,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0067307267685861195,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.011344020300935329,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.01909690060713635,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.4414540767752362,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "credit_history_years",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0013,
+            "js": 0.0154,
+            "wasserstein": 0.0143,
+            "p_value": 0.9199337016806334,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0055366309589776905,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.026850427828133933,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.014286708369363594,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.9199337016806334,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "num_dependents",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0011,
+            "js": 0.0139,
+            "wasserstein": null,
+            "p_value": 0.23122027331766093,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0010720332922946882,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.01157550619754227,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.14609394560238384,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "employment_type",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0002,
+            "js": 0.0063,
+            "wasserstein": null,
+            "p_value": 0.828908716852688,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.00021912849716430852,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.005233463020355536,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.7735017003765224,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "region",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0001,
+            "js": 0.005,
+            "wasserstein": null,
+            "p_value": 0.9069939114052207,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0001387535098035755,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.004164611989289045,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.8754113804782447,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "channel",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.8503,
+            "js": 0.2478,
+            "wasserstein": null,
+            "p_value": 0.0,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.8503270156219449,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.20722535094825595,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.0,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        }
+      ]
+    },
+    {
+      "dataset": "демо: mixed",
+      "n_ref": 20000,
+      "n_cur": 5000,
+      "rows": [
+        {
+          "column": "age",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.3368,
+            "js": 0.2427,
+            "wasserstein": 0.6049,
+            "p_value": 2.7534817419587715e-201,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.5942882357001724,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.226422199992263,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.604940896884189,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 2.7534817419587715e-201,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "income",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.1931,
+            "js": 0.1848,
+            "wasserstein": 0.4652,
+            "p_value": 3.3438982387001303e-100,
+            "severity": "warning"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.18793464206545274,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.15216853421064702,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.4651894419466773,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 3.3438982387001303e-100,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "loan_amount",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.388,
+            "js": 0.26,
+            "wasserstein": 0.4276,
+            "p_value": 1.5552571523073612e-172,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.5831801331513805,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.253806393729387,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.4275626910979869,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 1.5552571523073612e-172,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "credit_history_years",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0009,
+            "js": 0.0128,
+            "wasserstein": 0.0129,
+            "p_value": 0.909902164777643,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0016773718964000575,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.015549842823550835,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.01286514534753637,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.909902164777643,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "num_dependents",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0003,
+            "js": 0.0078,
+            "wasserstein": null,
+            "p_value": 0.7156209639796316,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0003401288242423584,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.006520341676710414,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.6383325561388091,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "employment_type",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0004,
+            "js": 0.0086,
+            "wasserstein": null,
+            "p_value": 0.6475139807072927,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.00041060735699779765,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.007164073470558464,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.5570670466236298,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "region",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0002,
+            "js": 0.0066,
+            "wasserstein": null,
+            "p_value": 0.8105268997740263,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.00024132028387748657,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.0054922118840566,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.7532053784038029,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "channel",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.7818,
+            "js": 0.2384,
+            "wasserstein": null,
+            "p_value": 0.0,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.78179038939966,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.19942808950582325,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.0,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        }
+      ]
+    },
+    {
+      "dataset": "bank-marketing (май–август → сентябрь–декабрь)",
+      "n_ref": 32249,
+      "n_cur": 5501,
+      "rows": [
+        {
+          "column": "V1",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.0439,
+            "js": 0.0886,
+            "wasserstein": 0.2175,
+            "p_value": 2.2157023287548955e-15,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.11511467070530364,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.11378551160214889,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.21749559880760191,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 2.2157023287548955e-15,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "V6",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.2796,
+            "js": 0.2212,
+            "wasserstein": 0.4508,
+            "p_value": 1.6710601021817587e-191,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.10108630156240865,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.10630615840770614,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.45075001145121807,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 1.6710601021817587e-191,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "V10",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.946,
+            "js": 0.4015,
+            "wasserstein": 0.4878,
+            "p_value": 0.0,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 1.2177671099753342,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.37765161977635275,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.4877992571337158,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.0,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "V12",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.003,
+            "js": 0.0231,
+            "wasserstein": 0.0438,
+            "p_value": 0.09335610107255621,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.009887853412652475,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.022551807369947496,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.04376914588850619,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 0.09335610107255621,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "V13",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.2812,
+            "js": 0.2203,
+            "wasserstein": 0.3492,
+            "p_value": 1.3695276970353428e-163,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.19263732838302663,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.14411281511112406,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.34920630597031876,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 1.3695276970353428e-163,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "V14",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.3373,
+            "js": 0.2411,
+            "wasserstein": 0.4475,
+            "p_value": 2.582331234291409e-234,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.7633173732004411,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.2853450994052749,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.4475381361245327,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 2.582331234291409e-234,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "V15",
+          "kind": "numeric",
+          "ours": {
+            "psi": 0.3433,
+            "js": 0.2437,
+            "wasserstein": 0.465,
+            "p_value": 2.892021903517243e-233,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.08662206879298805,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.09777454657933858,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "wasserstein": {
+              "score": 0.46498145553718523,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "ks": {
+              "score": 2.892021903517243e-233,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "V2",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.1572,
+            "js": 0.1674,
+            "wasserstein": null,
+            "p_value": 1.4951587524644613e-147,
+            "severity": "warning"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.1572252309807364,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.13939015254940199,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 2.8725084065434066e-177,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "V3",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0001,
+            "js": 0.0051,
+            "wasserstein": null,
+            "p_value": 0.708928684356377,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.00014703771126385224,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.004287129636550002,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.668998293839733,
+              "drifted": false,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "V4",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0556,
+            "js": 0.0999,
+            "wasserstein": null,
+            "p_value": 1.346216344275017e-58,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0556086348625038,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.08321189188698296,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 1.9898157746533027e-70,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "V5",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0018,
+            "js": 0.0181,
+            "wasserstein": null,
+            "p_value": 0.006736697032332984,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.0018149410737396837,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.015031297075734282,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.003393937475513117,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "V7",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0556,
+            "js": 0.1,
+            "wasserstein": null,
+            "p_value": 3.1875702926833327e-59,
+            "severity": "warning"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.05559008471247346,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.08326165573799649,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 8.03706185768022e-70,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "V8",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.0027,
+            "js": 0.0222,
+            "wasserstein": null,
+            "p_value": 0.0004516339610321803,
+            "severity": "ok"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.002741344303471296,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.01850655557240405,
+              "drifted": false,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.00014992709686156069,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": false
+        },
+        {
+          "column": "V9",
+          "kind": "categorical",
+          "ours": {
+            "psi": 1.1766,
+            "js": 0.4152,
+            "wasserstein": null,
+            "p_value": 0.0,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 1.1766335642385752,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.34567733077335067,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.0,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        },
+        {
+          "column": "V16",
+          "kind": "categorical",
+          "ours": {
+            "psi": 0.3469,
+            "js": 0.2446,
+            "wasserstein": null,
+            "p_value": 0.0,
+            "severity": "critical"
+          },
+          "evidently": {
+            "psi": {
+              "score": 0.3468728022854709,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "js": {
+              "score": 0.20362437753957402,
+              "drifted": true,
+              "threshold": 0.1
+            },
+            "chi2": {
+              "score": 0.0,
+              "drifted": true,
+              "threshold": 0.05
+            }
+          },
+          "evidently_default_drifted": true
+        }
+      ]
+    }
+  ]
+}

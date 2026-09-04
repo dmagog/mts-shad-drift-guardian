@@ -1,0 +1,340 @@
+{
+  "reference_rows": 20000,
+  "periods": [
+    {
+      "label": "2026-01",
+      "rows": 3000,
+      "overall_severity": "ok",
+      "recommendation": "Дрейф не обнаружен — модель можно эксплуатировать в штатном режиме.",
+      "n_critical": 0,
+      "n_warning": 0,
+      "target_severity": "ok",
+      "adversarial_auc": 0.5036,
+      "alerts": [],
+      "psi_by_column": {
+        "age": 0.0006,
+        "income": 0.0028,
+        "loan_amount": 0.0041,
+        "credit_history_years": 0.0032,
+        "num_dependents": 0.0004,
+        "employment_type": 0.0027,
+        "region": 0.0003,
+        "channel": 0.0026
+      },
+      "severity_by_column": {
+        "age": "ok",
+        "income": "ok",
+        "loan_amount": "ok",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "region": "ok",
+        "channel": "ok"
+      }
+    },
+    {
+      "label": "2026-02",
+      "rows": 3000,
+      "overall_severity": "ok",
+      "recommendation": "Дрейф не обнаружен — модель можно эксплуатировать в штатном режиме.",
+      "n_critical": 0,
+      "n_warning": 0,
+      "target_severity": "ok",
+      "adversarial_auc": 0.5406,
+      "alerts": [],
+      "psi_by_column": {
+        "age": 0.0105,
+        "income": 0.01,
+        "loan_amount": 0.0023,
+        "credit_history_years": 0.0012,
+        "num_dependents": 0.0006,
+        "employment_type": 0.001,
+        "region": 0.0007,
+        "channel": 0.0007
+      },
+      "severity_by_column": {
+        "age": "ok",
+        "income": "ok",
+        "loan_amount": "ok",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "region": "ok",
+        "channel": "ok"
+      }
+    },
+    {
+      "label": "2026-03",
+      "rows": 3000,
+      "overall_severity": "warning",
+      "recommendation": "Обнаружены умеренные сдвиги — рекомендуется усиленный мониторинг.",
+      "n_critical": 0,
+      "n_warning": 0,
+      "target_severity": "ok",
+      "adversarial_auc": 0.579,
+      "alerts": [
+        "ВНИМАНИЕ: adversarial validation различает выборки (ROC-AUC=0.579); сильнее всего изменились: income, age, loan_amount."
+      ],
+      "psi_by_column": {
+        "age": 0.0444,
+        "income": 0.0357,
+        "loan_amount": 0.0034,
+        "credit_history_years": 0.0026,
+        "num_dependents": 0.0022,
+        "employment_type": 0.0018,
+        "region": 0.0003,
+        "channel": 0.0005
+      },
+      "severity_by_column": {
+        "age": "ok",
+        "income": "ok",
+        "loan_amount": "ok",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "region": "ok",
+        "channel": "ok"
+      }
+    },
+    {
+      "label": "2026-04",
+      "rows": 3000,
+      "overall_severity": "warning",
+      "recommendation": "Обнаружены умеренные сдвиги — рекомендуется усиленный мониторинг.",
+      "n_critical": 0,
+      "n_warning": 1,
+      "target_severity": "ok",
+      "adversarial_auc": 0.6004,
+      "alerts": [
+        "ВНИМАНИЕ: дрейф по признаку 'age' — ks=0.112 (p<1e-16), jensen_shannon=0.115.",
+        "ВНИМАНИЕ: adversarial validation различает выборки (ROC-AUC=0.600); сильнее всего изменились: income, age, loan_amount."
+      ],
+      "psi_by_column": {
+        "age": 0.0745,
+        "income": 0.0296,
+        "loan_amount": 0.0017,
+        "credit_history_years": 0.0022,
+        "num_dependents": 0.0031,
+        "employment_type": 0.0007,
+        "region": 0.0006,
+        "channel": 0.0001
+      },
+      "severity_by_column": {
+        "age": "warning",
+        "income": "ok",
+        "loan_amount": "ok",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "region": "ok",
+        "channel": "ok"
+      }
+    },
+    {
+      "label": "2026-05",
+      "rows": 3000,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф — рекомендуется переобучение модели.",
+      "n_critical": 0,
+      "n_warning": 2,
+      "target_severity": "ok",
+      "adversarial_auc": 0.6899,
+      "alerts": [
+        "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 7.7% до 19.6% (+11.9 п.п.).",
+        "ВНИМАНИЕ: дрейф по признаку 'age' — ks=0.158 (p<1e-16), psi=0.13, jensen_shannon=0.152, wasserstein_norm=0.369.",
+        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.109 (p<1e-16), jensen_shannon=0.113.",
+        "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.690); сильнее всего изменились: income, age, loan_amount."
+      ],
+      "psi_by_column": {
+        "age": 0.1301,
+        "income": 0.072,
+        "loan_amount": 0.0035,
+        "credit_history_years": 0.0074,
+        "num_dependents": 0.0007,
+        "employment_type": 0.0,
+        "region": 0.0001,
+        "channel": 0.0006
+      },
+      "severity_by_column": {
+        "age": "warning",
+        "income": "warning",
+        "loan_amount": "ok",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "region": "ok",
+        "channel": "ok"
+      }
+    },
+    {
+      "label": "2026-06",
+      "rows": 3000,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф — рекомендуется переобучение модели.",
+      "n_critical": 0,
+      "n_warning": 3,
+      "target_severity": "ok",
+      "adversarial_auc": 0.8462,
+      "alerts": [
+        "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 7.7% до 18.3% (+10.6 п.п.).",
+        "ВНИМАНИЕ: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 3.2% строк текущего батча.",
+        "ВНИМАНИЕ: дрейф по признаку 'age' — ks=0.199 (p<1e-16), psi=0.2, jensen_shannon=0.188, wasserstein_norm=0.446.",
+        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.14 (p<1e-16), psi=0.114, jensen_shannon=0.142, wasserstein_norm=0.334.",
+        "ВНИМАНИЕ: дрейф по признаку 'channel' — chi2=639 (p<1e-16), psi=0.184, jensen_shannon=0.126.",
+        "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.846); сильнее всего изменились: age, income, loan_amount."
+      ],
+      "psi_by_column": {
+        "age": 0.1995,
+        "income": 0.1137,
+        "loan_amount": 0.0023,
+        "credit_history_years": 0.003,
+        "num_dependents": 0.001,
+        "employment_type": 0.0019,
+        "region": 0.0036,
+        "channel": 0.1842
+      },
+      "severity_by_column": {
+        "age": "warning",
+        "income": "warning",
+        "loan_amount": "ok",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "region": "ok",
+        "channel": "warning"
+      }
+    },
+    {
+      "label": "2026-07",
+      "rows": 3000,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф — рекомендуется переобучение модели.",
+      "n_critical": 2,
+      "n_warning": 1,
+      "target_severity": "ok",
+      "adversarial_auc": 0.7451,
+      "alerts": [
+        "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 7.7% до 18.8% (+11.1 п.п.).",
+        "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 7.7% строк текущего батча.",
+        "КРИТИЧНО: дрейф по признаку 'age' — ks=0.191 (p<1e-16), psi=0.222, jensen_shannon=0.198, wasserstein_norm=0.495.",
+        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.161 (p<1e-16), psi=0.138, jensen_shannon=0.157, wasserstein_norm=0.375.",
+        "КРИТИЧНО: дрейф по признаку 'channel' — chi2=1.55e+03 (p<1e-16), psi=0.516, jensen_shannon=0.198.",
+        "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.745); сильнее всего изменились: income, age, loan_amount."
+      ],
+      "psi_by_column": {
+        "age": 0.2222,
+        "income": 0.1376,
+        "loan_amount": 0.0061,
+        "credit_history_years": 0.0021,
+        "num_dependents": 0.0015,
+        "employment_type": 0.0002,
+        "region": 0.0018,
+        "channel": 0.5156
+      },
+      "severity_by_column": {
+        "age": "critical",
+        "income": "warning",
+        "loan_amount": "ok",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "region": "ok",
+        "channel": "critical"
+      }
+    },
+    {
+      "label": "2026-08",
+      "rows": 3000,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф — рекомендуется переобучение модели.",
+      "n_critical": 2,
+      "n_warning": 1,
+      "target_severity": "warning",
+      "adversarial_auc": 0.7867,
+      "alerts": [
+        "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 7.7% до 20.2% (+12.4 п.п.).",
+        "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 11.5% строк текущего батча.",
+        "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=471 (p<1e-16), psi=0.15, jensen_shannon=0.163.",
+        "КРИТИЧНО: дрейф по признаку 'age' — ks=0.237 (p<1e-16), psi=0.32, jensen_shannon=0.237, wasserstein_norm=0.588.",
+        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.17 (p<1e-16), psi=0.179, jensen_shannon=0.178, wasserstein_norm=0.425.",
+        "КРИТИЧНО: дрейф по признаку 'channel' — chi2=2.33e+03 (p<1e-16), psi=0.823, jensen_shannon=0.244.",
+        "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.787); сильнее всего изменились: channel, income, age."
+      ],
+      "psi_by_column": {
+        "age": 0.3202,
+        "income": 0.1788,
+        "loan_amount": 0.004,
+        "credit_history_years": 0.0041,
+        "num_dependents": 0.0004,
+        "employment_type": 0.0012,
+        "region": 0.0031,
+        "channel": 0.8227
+      },
+      "severity_by_column": {
+        "age": "critical",
+        "income": "warning",
+        "loan_amount": "ok",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "region": "ok",
+        "channel": "critical"
+      }
+    }
+  ],
+  "columns": [
+    "age",
+    "income",
+    "loan_amount",
+    "credit_history_years",
+    "num_dependents",
+    "employment_type",
+    "region",
+    "channel"
+  ],
+  "meta": {
+    "generated_at": "2026-09-04T13:26:27+00:00",
+    "config": {
+      "thresholds": {
+        "psi_warning": 0.1,
+        "psi_critical": 0.2,
+        "alpha": 0.05,
+        "js_warning": 0.1,
+        "js_critical": 0.2,
+        "wasserstein_warning": 0.3,
+        "wasserstein_critical": 0.5,
+        "adversarial_auc_warning": 0.55,
+        "adversarial_auc_critical": 0.65,
+        "missing_delta_warning": 0.05,
+        "missing_delta_critical": 0.15,
+        "out_of_range_warning": 0.01,
+        "out_of_range_critical": 0.05,
+        "new_category_warning": 0.01,
+        "new_category_critical": 0.05,
+        "duplicates_delta_warning": 0.05,
+        "duplicates_delta_critical": 0.15
+      },
+      "n_bins": 10,
+      "bonferroni": true,
+      "max_categories": 20,
+      "categorical_int_unique_limit": 10,
+      "min_samples": 20,
+      "sample_size_guard": true,
+      "bootstrap_samples": 200,
+      "noise_quantile": 0.99,
+      "identifier_unique_share": 0.98,
+      "identifier_min_rows": 100,
+      "adversarial_enabled": true,
+      "adversarial_max_rows": 50000,
+      "adversarial_n_jobs": 1,
+      "random_state": 42,
+      "numeric_columns": null,
+      "categorical_columns": null,
+      "exclude_columns": null,
+      "target_column": "target",
+      "prediction_column": null,
+      "value_bounds": null,
+      "allowed_categories": null
+    }
+  }
+}

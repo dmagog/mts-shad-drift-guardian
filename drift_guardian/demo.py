@@ -150,3 +150,40 @@ def make_demo(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Пара (эталон, текущий батч) для сценария."""
     return make_reference(ref_rows, seed), make_current(scenario, cur_rows, seed)
+
+
+def make_timeline_demo(
+    n_periods: int = 8,
+    rows_per_period: int = 3_000,
+    seed: int = 42,
+    start: str = "2026-01-01",
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Эталон и поток заявок за ``n_periods`` месяцев с нарастающим дрейфом.
+
+    С каждым месяцем аудитория чуть старше и богаче (плавный дрейф), с пятого
+    месяца растут пропуски в доходе, с шестого появляется канал «партнёрская сеть»,
+    с седьмого начинается концептуальный дрейф по дефолтам. Поток содержит
+    колонку ``date``.
+    """
+    reference = make_reference(20_000, seed)
+    frames = []
+    ramp = max(n_periods - 6, 1)
+    for i in range(n_periods):
+        rng = np.random.default_rng([seed, 100 + i])
+        batch = make_base(rng, rows_per_period)
+        # Возраст остаётся целым: дробные значения тривиально выдавали бы батч adversarial-модели.
+        batch["age"] = np.clip(batch["age"] + 0.9 * i, 18, 85).round(0)
+        batch["income"] = (batch["income"] * (1 + 0.035 * i)).round(0)
+        if i >= 4:
+            batch = with_missing_surge(batch, rng)
+        if i >= 5:
+            batch.loc[rng.random(len(batch)) < 0.04 * (i - 4), "channel"] = "партнёрская сеть"
+        if i >= 6:
+            intercept = BASE_INTERCEPT + (SHOCK_INTERCEPT - BASE_INTERCEPT) * (i - 5) / ramp
+            batch = assign_target(batch, rng, intercept=intercept)
+        month_start = pd.Timestamp(start) + pd.DateOffset(months=i)
+        batch.insert(
+            0, "date", month_start + pd.to_timedelta(rng.integers(0, 28, len(batch)), unit="D")
+        )
+        frames.append(batch)
+    return reference, pd.concat(frames, ignore_index=True)
