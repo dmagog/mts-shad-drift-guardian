@@ -225,19 +225,40 @@ def sidebar() -> dict:
             help="К эталону — накопленный дрейф; к предыдущему периоду — скачки.",
         )
 
+    yaml_config: dict | None = None
+    with st.sidebar.expander("Конфиг YAML"):
+        st.caption(
+            "Пороги, поколоночные переопределения (column_thresholds), контракт данных и роли "
+            "колонок можно загрузить файлом — например, тем, что скачан на вкладке «Экспорт»."
+        )
+        yaml_file = st.file_uploader("Загрузить конфиг", type=["yaml", "yml"], label_visibility="collapsed")
+        if yaml_file is not None:
+            try:
+                yaml_config = DriftConfig.from_dict(yaml.safe_load(yaml_file.getvalue()) or {}).to_dict()
+                st.success(f"Конфиг из {yaml_file.name} применён; ползунки порогов отключены.")
+            except (TypeError, ValueError, yaml.YAMLError) as exc:
+                st.error(f"Конфиг не прочитан: {exc}")
+                yaml_config = None
+
     target_column = None
     segment_column = None
     exclude_columns: list[str] = []
     if reference is not None:
         st.sidebar.markdown("### Роли колонок")
         columns = list(reference.columns)  # исходные объекты: имена колонок бывают и не строками
-        default_index = columns.index("target") + 1 if is_demo and "target" in columns else 0
+        yaml_target = (yaml_config or {}).get("target_column")
+        if yaml_target in columns:
+            default_index = columns.index(yaml_target) + 1
+        else:
+            default_index = columns.index("target") + 1 if is_demo and "target" in columns else 0
         chosen = st.sidebar.selectbox(
             "Целевая переменная", [NO_TARGET, *columns], index=default_index, format_func=str
         )
         target_column = None if isinstance(chosen, str) and chosen == NO_TARGET else chosen
+        yaml_exclude = [c for c in ((yaml_config or {}).get("exclude_columns") or []) if c in columns]
         exclude_columns = st.sidebar.multiselect(
             "Исключить из анализа", [c for c in columns if c != target_column],
+            default=[c for c in yaml_exclude if c != target_column],
             placeholder="идентификаторы, даты…", format_func=str,
         )
         segment_candidates = [
@@ -245,7 +266,7 @@ def sidebar() -> dict:
             if c != target_column and c not in exclude_columns
             and 2 <= reference[c].nunique(dropna=True) <= 12
         ]
-        segment_default = params.get("segment")
+        segment_default = params.get("segment") or (yaml_config or {}).get("segment_column")
         segment_index = segment_candidates.index(segment_default) + 1 if segment_default in segment_candidates else 0
         segment_choice = st.sidebar.selectbox(
             "Разрез по сегментам", [NO_TARGET, *segment_candidates], index=segment_index, format_func=str,
@@ -253,26 +274,41 @@ def sidebar() -> dict:
         )
         segment_column = None if isinstance(segment_choice, str) and segment_choice == NO_TARGET else segment_choice
 
-    with st.sidebar.expander("Пороги и параметры"):
-        psi_warning = st.slider("PSI, внимание", 0.01, 0.50, 0.10, 0.01)
-        psi_critical = st.slider("PSI, критично", 0.05, 1.00, 0.20, 0.01)
-        alpha = st.select_slider("α для KS и χ²", options=[0.001, 0.01, 0.05, 0.10], value=0.05)
-        bonferroni = st.checkbox("Поправка Бонферрони", value=True)
-        adversarial_on = st.checkbox("Adversarial validation (LightGBM)", value=True)
-        auc_warning = st.slider("ROC-AUC, внимание", 0.50, 0.90, 0.55, 0.01)
-        auc_critical = st.slider("ROC-AUC, критично", 0.50, 0.95, 0.65, 0.01)
-        guard = st.checkbox("Защита от малых выборок", value=True)
-        st.caption("Поколоночные пороги задаются в YAML-конфиге (column_thresholds).")
-
-    thresholds = Thresholds(
-        psi_warning=psi_warning, psi_critical=max(psi_critical, psi_warning), alpha=float(alpha),
-        adversarial_auc_warning=auc_warning, adversarial_auc_critical=max(auc_critical, auc_warning),
-    )
-    config = DriftConfig(
-        thresholds=thresholds, bonferroni=bonferroni, adversarial_enabled=adversarial_on,
-        sample_size_guard=guard, target_column=target_column, exclude_columns=exclude_columns or None,
-        segment_column=segment_column,
-    )
+    if yaml_config is not None:
+        base = dict(yaml_config)
+        base.update(
+            target_column=target_column, exclude_columns=exclude_columns or None,
+            segment_column=segment_column,
+        )
+        config = DriftConfig.from_dict(base)
+        with st.sidebar.expander("Пороги и параметры"):
+            th = config.thresholds
+            st.caption(
+                f"Из файла: PSI {th.psi_warning} / {th.psi_critical}, JS {th.js_warning} / {th.js_critical}, "
+                f"Вассерштейн {th.wasserstein_warning} / {th.wasserstein_critical}, α = {th.alpha}, "
+                f"adversarial {'вкл.' if config.adversarial_enabled else 'выкл.'}; "
+                f"поколоночных переопределений: {len(config.column_thresholds or {})}."
+            )
+    else:
+        with st.sidebar.expander("Пороги и параметры"):
+            psi_warning = st.slider("PSI, внимание", 0.01, 0.50, 0.10, 0.01)
+            psi_critical = st.slider("PSI, критично", 0.05, 1.00, 0.20, 0.01)
+            alpha = st.select_slider("α для KS и χ²", options=[0.001, 0.01, 0.05, 0.10], value=0.05)
+            bonferroni = st.checkbox("Поправка Бонферрони", value=True)
+            adversarial_on = st.checkbox("Adversarial validation (LightGBM)", value=True)
+            auc_warning = st.slider("ROC-AUC, внимание", 0.50, 0.90, 0.55, 0.01)
+            auc_critical = st.slider("ROC-AUC, критично", 0.50, 0.95, 0.65, 0.01)
+            guard = st.checkbox("Защита от малых выборок", value=True)
+            st.caption("Поколоночные пороги — через YAML-конфиг (column_thresholds).")
+        thresholds = Thresholds(
+            psi_warning=psi_warning, psi_critical=max(psi_critical, psi_warning), alpha=float(alpha),
+            adversarial_auc_warning=auc_warning, adversarial_auc_critical=max(auc_critical, auc_warning),
+        )
+        config = DriftConfig(
+            thresholds=thresholds, bonferroni=bonferroni, adversarial_enabled=adversarial_on,
+            sample_size_guard=guard, target_column=target_column, exclude_columns=exclude_columns or None,
+            segment_column=segment_column,
+        )
     ui.footer()
     return {
         "mode": mode, "reference": reference, "current": current, "stream": stream,
@@ -302,9 +338,10 @@ def what_changed(report: dict, reference: pd.DataFrame, current: pd.DataFrame,
         for cell, col in zip(cells, shown[index:index + size], strict=False):
             name = col["column"]
             with cell, st.container(border=True):
+                th = config.thresholds_for(name)
                 ui.feature_card_head(
                     name, col["severity"], explain_column(col, by_column.get(name, [])),
-                    "PSI", psi_of(col), config.thresholds.psi_warning, config.thresholds.psi_critical,
+                    "PSI", psi_of(col), th.psi_warning, th.psi_critical,
                 )
                 fig = ui.compact(
                     distribution_figure(col["kind"], reference[name], current[name], None),
@@ -370,9 +407,12 @@ def render_segments(report: dict, key_prefix: str) -> None:
     segments = report.get("segments")
     if not segments:
         return
-    column = report["meta"].get("segment_column")
+    meta = report["meta"]
+    column = meta.get("segment_column")
     n_bad = sum(s["overall_severity"] != "ok" for s in segments)
-    ui.section(f"По сегментам «{column}»", f"{len(segments)} сегментов, с дрейфом: {n_bad}")
+    total = meta.get("segment_values_total") or len(segments)
+    shown = f"показаны {len(segments)} из {total}" if total > len(segments) else f"{len(segments)} сегментов"
+    ui.section(f"По сегментам «{column}»", f"{shown}, с дрейфом: {n_bad}")
     left, right = st.columns(2)
     frame = segment_frame(segments).drop(columns=["первый алерт"])
     frame["доля батча"] = (frame["доля батча"] * 100).round(0)

@@ -56,6 +56,7 @@ class DriftGuardian:
 
     def __init__(self, config: DriftConfig | None = None):
         self.config = config or DriftConfig()
+        self._segment_values_total: int | None = None
 
     def run(self, reference: pd.DataFrame, current: pd.DataFrame) -> DriftReport:
         cfg = self.config
@@ -67,6 +68,10 @@ class DriftGuardian:
             for i in schema_issues
         ):
             return self._aborted_report(schema_issues, reference, current, started_at)
+        # Слишком мало строк с любой стороны: статистика невозможна, а проверки диапазонов
+        # и категорий против крошечного эталона дали бы мусорные алерты.
+        if min(len(reference), len(current)) < cfg.min_samples:
+            return self._insufficient_report(schema_issues, reference, current, started_at)
 
         numeric_cols, categorical_cols, skipped = split_columns(reference, current, cfg)
         skipped_cols = list(skipped)
@@ -166,9 +171,9 @@ class DriftGuardian:
         feature_worst = worst(
             [*(i.severity for i in quality_issues), *(c.severity for c in column_reports)]
         )
-        # Слишком маленький батч: статистика невозможна, честно говорим об этом,
+        # Все тесты пропущены (например, колонки почти пустые): честно говорим об этом,
         # а не рапортуем «ok» по пропущенным тестам.
-        insufficient = len(current) < cfg.min_samples or bool(
+        insufficient = bool(
             column_reports and all(c.tests and c.tests[0].name == "skipped" for c in column_reports)
         )
         notes: list[str] = []
@@ -177,14 +182,10 @@ class DriftGuardian:
         if insufficient:
             overall = worst([overall, "warning"])
             recommendation = (
-                f"Батч слишком мал для статистических выводов: {len(current)} строк при минимуме "
-                f"{cfg.min_samples}. Накопите больше данных или укрупните период."
+                "Недостаточно непустых значений для статистических выводов: все тесты пропущены. "
+                "Проверьте заполненность колонок или накопите больше данных."
             )
-            alerts.insert(
-                0,
-                f"ВНИМАНИЕ: батч содержит {len(current)} строк — меньше минимума {cfg.min_samples}; "
-                "статистические тесты пропущены.",
-            )
+            alerts.insert(0, "ВНИМАНИЕ: во всех колонках меньше минимума непустых значений; тесты пропущены.")
         elif target_drift and target_drift.severity == "critical" and feature_worst != "critical":
             recommendation = _CONCEPT_DRIFT_RECOMMENDATION
         elif overall == "ok" and underpowered:
@@ -214,6 +215,7 @@ class DriftGuardian:
             "insufficient_data": insufficient,
             "notes": notes,
             "segment_column": cfg.segment_column if segments is not None else None,
+            "segment_values_total": self._segment_values_total,
             "target_column": cfg.target_column,
             "prediction_column": cfg.prediction_column,
             "alpha_effective": alpha_effective,
@@ -241,6 +243,14 @@ class DriftGuardian:
         column = cfg.segment_column
         if not column:
             return None
+        if column in (cfg.target_column, cfg.prediction_column):
+            schema_issues.append(
+                Issue(
+                    check="segment_column_is_target", severity="warning", column=column,
+                    message=f"Разрез по '{column}' не имеет смысла: это целевая переменная или предсказание — разрез пропущен.",
+                )
+            )
+            return None
         if column not in reference.columns or column not in current.columns:
             schema_issues.append(
                 Issue(
@@ -249,7 +259,9 @@ class DriftGuardian:
                 )
             )
             return None
-        values = list(reference[column].value_counts(dropna=True).index[: cfg.max_segments])
+        all_values = reference[column].value_counts(dropna=True)
+        self._segment_values_total = int(len(all_values))
+        values = list(all_values.index[: cfg.max_segments])
         sub_config = replace(
             cfg,
             segment_column=None,
@@ -353,6 +365,45 @@ class DriftGuardian:
                 f"выборки (ROC-AUC={adversarial.roc_auc:.3f}); сильнее всего изменились: {top}."
             )
         return alerts
+
+    def _insufficient_report(
+        self,
+        schema_issues: list[Issue],
+        reference: pd.DataFrame,
+        current: pd.DataFrame,
+        started_at: datetime,
+    ) -> DriftReport:
+        cfg = self.config
+        small = "эталон" if len(reference) < cfg.min_samples else "батч"
+        rows = len(reference) if small == "эталон" else len(current)
+        alert = (
+            f"ВНИМАНИЕ: {small} содержит {rows} строк — меньше минимума {cfg.min_samples}; "
+            "статистические тесты пропущены."
+        )
+        return DriftReport(
+            overall_severity="warning",
+            recommendation=(
+                f"Недостаточно данных для статистических выводов: эталон {len(reference)} строк, "
+                f"батч {len(current)} строк при минимуме {cfg.min_samples}. Накопите больше данных "
+                "или укрупните период."
+            ),
+            alerts=[*(f"КРИТИЧНО: {i.message}" for i in schema_issues if i.severity == "critical"), alert],
+            schema=schema_issues,
+            data_quality=[],
+            columns=[],
+            adversarial=None,
+            meta={
+                "generated_at": started_at.isoformat(timespec="seconds"),
+                "reference_rows": int(len(reference)),
+                "current_rows": int(len(current)),
+                "numeric_columns": [], "categorical_columns": [], "skipped_columns": [],
+                "skipped_reasons": {}, "underpowered_columns": [], "excluded_columns": [],
+                "insufficient_data": True, "notes": [],
+                "segment_column": None, "segment_values_total": None,
+                "target_column": cfg.target_column, "prediction_column": cfg.prediction_column,
+                "alpha_effective": cfg.thresholds.alpha, "config": cfg.to_dict(),
+            },
+        )
 
     def _aborted_report(
         self,

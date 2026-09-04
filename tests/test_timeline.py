@@ -98,3 +98,33 @@ def test_compare_previous_off_by_default():
     timeline = run_timeline_from_frame(reference, stream, "date", "M", DriftConfig(adversarial_enabled=False))
     assert all(p["vs_previous"] is None for p in timeline["periods"])
     assert timeline["meta"]["compare_previous"] is False
+
+
+def test_compare_previous_with_tiny_previous_period_is_insufficient_not_critical():
+    reference, stream = make_timeline_demo(n_periods=3, rows_per_period=800, seed=13)
+    first = stream[stream["date"] < "2026-02-01"].head(10)
+    stream = pd.concat([first, stream[stream["date"] >= "2026-02-01"]])
+    timeline = run_timeline_from_frame(
+        reference, stream, "date", "M", DriftConfig(target_column="target", adversarial_enabled=False),
+        compare_previous=True,
+    )
+    second = timeline["periods"][1]
+    assert second["overall_severity"] == "ok"  # относительно эталона всё в порядке
+    assert second["vs_previous"]["insufficient"] is True
+    assert second["vs_previous"]["overall_severity"] == "warning"
+
+
+def test_timeline_skips_segments_per_period():
+    import time
+
+    reference, stream = make_timeline_demo(n_periods=4, rows_per_period=800, seed=14)
+    plain = DriftConfig(target_column="target", adversarial_enabled=False)
+    with_segments = DriftConfig(target_column="target", segment_column="region", adversarial_enabled=False)
+    started = time.perf_counter()
+    run_timeline_from_frame(reference, stream, "date", "M", plain)
+    base = time.perf_counter() - started
+    started = time.perf_counter()
+    timeline = run_timeline_from_frame(reference, stream, "date", "M", with_segments)
+    with_seg = time.perf_counter() - started
+    assert timeline["meta"]["config"]["segment_column"] is None
+    assert with_seg < base * 2.5  # без отключения сегментов было бы в 3–5 раз дольше

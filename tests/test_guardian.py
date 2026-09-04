@@ -144,7 +144,7 @@ def test_tiny_batch_is_reported_as_insufficient():
     report = analyze(reference, current.head(10), DriftConfig(target_column="target"))
     assert report["overall_severity"] == "warning"
     assert report["meta"]["insufficient_data"] is True
-    assert "слишком мал" in report["recommendation"]
+    assert "Недостаточно данных" in report["recommendation"]
     assert report["alerts"][0].startswith("ВНИМАНИЕ: батч содержит 10 строк")
     # шум долей на десяти строках не должен превращаться в замечания к качеству
     assert all(i["severity"] == "ok" for i in report["data_quality"])
@@ -205,3 +205,25 @@ def test_column_thresholds_change_only_that_column():
     assert by_col(base)["age"] == "critical"
     assert by_col(relaxed)["age"] == "ok"
     assert by_col(base)["income"] == by_col(relaxed)["income"]
+
+
+def test_tiny_reference_is_insufficient_not_critical():
+    reference, current = make_demo("no_drift", 2000, 1500, seed=70)
+    report = analyze(reference.head(10), current, DriftConfig(target_column="target"))
+    assert report["overall_severity"] == "warning"
+    assert report["meta"]["insufficient_data"] is True
+    assert report["data_quality"] == [] and report["columns"] == []
+    assert "эталон содержит 10 строк" in report["alerts"][-1]
+    assert "эталон 10 строк" in report["recommendation"]
+
+
+def test_segment_truncation_is_reported_and_target_segment_rejected():
+    rng = np.random.default_rng(71)
+    reference, current = make_demo("no_drift", 3000, 1500, seed=71)
+    reference = reference.assign(city=rng.integers(0, 12, len(reference)).astype(str))
+    current = current.assign(city=rng.integers(0, 12, len(current)).astype(str))
+    report = analyze(reference, current, DriftConfig(segment_column="city", max_segments=5, adversarial_enabled=False))
+    assert len(report["segments"]) == 5 and report["meta"]["segment_values_total"] == 12
+    rejected = analyze(reference, current, DriftConfig(target_column="target", segment_column="target", adversarial_enabled=False))
+    assert rejected["segments"] is None
+    assert any(i["check"] == "segment_column_is_target" for i in rejected["schema"])

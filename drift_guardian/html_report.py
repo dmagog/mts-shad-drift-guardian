@@ -17,6 +17,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from jinja2 import Template
 
+from .config import DriftConfig
 from .narrative import (
     CHECK_LABELS,
     CONCEPT_DRIFT_NOTE,
@@ -203,8 +204,6 @@ def render_html_report(
     meta = report.get("meta", {}) or {}
     severity = report["overall_severity"]
     thresholds = (meta.get("config") or {}).get("thresholds") or {}
-    psi_warning = thresholds.get("psi_warning", 0.1)
-    psi_critical = thresholds.get("psi_critical", 0.2)
     generated = (meta.get("generated_at") or datetime.now().isoformat(timespec="seconds")).replace("T", " ")[:16]
 
     def present(name: str) -> bool:
@@ -258,13 +257,19 @@ def render_html_report(
         for s in segments_raw
     ]
 
-    cards = [
-        {
-            "head": _card_head(c, by_column.get(c["column"], []), psi_warning, psi_critical),
-            "html": html,
-        }
-        for c, html in zip(drifted, card_html, strict=True)
-    ]
+    try:
+        config = DriftConfig.from_dict(meta.get("config") or {})
+    except (TypeError, ValueError):
+        config = DriftConfig()
+    cards = []
+    for c, html in zip(drifted, card_html, strict=True):
+        th = config.thresholds_for(c["column"])
+        cards.append(
+            {
+                "head": _card_head(c, by_column.get(c["column"], []), th.psi_warning, th.psi_critical),
+                "html": html,
+            }
+        )
     n_drifted = len(drifted_columns(report))
     changed_meta = f"{n_drifted} из {len(report.get('columns', []))} признаков" + (
         f", показаны {len(cards)}" if n_drifted > len(cards) else ""
@@ -337,7 +342,10 @@ def render_html_report(
         importance_html=importance_html[0] if importance_html else "",
         segments=segments,
         segments_section=section(
-            f"По сегментам «{meta.get('segment_column', '')}»", f"{len(segments)} сегментов"
+            f"По сегментам «{meta.get('segment_column', '')}»",
+            f"показаны {len(segments)} из {meta['segment_values_total']}"
+            if meta.get("segment_values_total") and meta["segment_values_total"] > len(segments)
+            else f"{len(segments)} сегментов",
         ),
         segments_html=segment_html[0] if segment_html else "",
         log_section=section("Журнал алертов", str(len(report.get("alerts", [])))),

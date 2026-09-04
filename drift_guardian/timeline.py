@@ -13,7 +13,7 @@
 """
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -59,7 +59,12 @@ def run_timeline(
     config: DriftConfig | None = None,
     compare_previous: bool = False,
 ) -> dict:
-    """Прогоняет каждый батч против эталона (и, по запросу, против предыдущего периода)."""
+    """Прогоняет каждый батч против эталона (и, по запросу, против предыдущего периода).
+
+    Разрез по сегментам в сводке периодов не показывается (он есть в детальном разборе
+    периода), поэтому здесь отключается — иначе поток считался бы в несколько раз дольше.
+    """
+    config = replace(config or DriftConfig(), segment_column=None)
     guardian = DriftGuardian(config)
     summaries: list[PeriodSummary] = []
     previous: pd.DataFrame | None = None
