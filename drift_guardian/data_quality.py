@@ -52,6 +52,7 @@ def check_data_quality(
 
     # 1. Пропуски: прирост доли NaN по каждой анализируемой колонке.
     for col in [*numeric_cols, *categorical_cols]:
+        th = config.thresholds_for(col)
         ref_na = float(reference[col].isna().mean())
         cur_na = float(current[col].isna().mean())
         delta = cur_na - ref_na
@@ -70,7 +71,8 @@ def check_data_quality(
                 )
             )
 
-    # 2. Полные дубликаты строк.
+    # 2. Полные дубликаты строк (общие пороги: проверка на уровне таблицы).
+    th = config.thresholds
     ref_dup = float(reference.duplicated().mean())
     cur_dup = float(current.duplicated().mean())
     dup_delta = cur_dup - ref_dup
@@ -106,6 +108,7 @@ def check_data_quality(
 
     # 4. Числовые значения вне допустимого диапазона (контракт или [min, max] эталона).
     for col in numeric_cols:
+        th = config.thresholds_for(col)
         cur_clean = pd.to_numeric(current[col], errors="coerce")
         cur_clean = cur_clean[np.isfinite(cur_clean)]
         if cur_clean.empty:
@@ -136,6 +139,7 @@ def check_data_quality(
 
     # 5. Категории вне допустимого множества (контракт или категории эталона).
     for col in categorical_cols:
+        th = config.thresholds_for(col)
         cur_clean = current[col].dropna()
         if cur_clean.empty:
             continue

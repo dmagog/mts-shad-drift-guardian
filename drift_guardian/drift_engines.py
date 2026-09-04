@@ -30,7 +30,7 @@ import pandas as pd
 from scipy import stats
 from scipy.spatial.distance import jensenshannon
 
-from .config import DriftConfig
+from .config import DriftConfig, Thresholds
 from .contracts import ColumnReport, TestResult, grade, worst
 
 MIN_SHARE = 1e-4
@@ -156,9 +156,10 @@ def _effect_tests(
     cur_counts: np.ndarray,
     config: DriftConfig,
     extra_details: dict,
+    thresholds: Thresholds | None = None,
 ) -> list[TestResult]:
     """PSI и JS с защитой от малых выборок (общая часть числового и категориального анализа)."""
-    th = config.thresholds
+    th = thresholds or config.thresholds
     psi = psi_from_counts(ref_counts, cur_counts)
     js = js_from_counts(ref_counts, cur_counts)
 
@@ -214,7 +215,7 @@ def analyze_numeric_column(
     alpha_effective: float,
 ) -> ColumnReport:
     """Полный набор тестов дрейфа для числовой колонки."""
-    th = config.thresholds
+    th = config.thresholds_for(column)
     # Бесконечности трактуются как пропуски: модуль качества данных сообщает о них отдельно.
     ref = _finite(reference[column])
     cur = _finite(current[column])
@@ -224,7 +225,7 @@ def analyze_numeric_column(
     edges = reference_bin_edges(ref, config.n_bins)
     ref_counts, _ = np.histogram(ref, bins=edges)
     cur_counts, _ = np.histogram(cur, bins=edges)
-    tests = _effect_tests(ref_counts, cur_counts, config, {"n_bins": len(edges) - 1})
+    tests = _effect_tests(ref_counts, cur_counts, config, {"n_bins": len(edges) - 1}, th)
 
     scale = float(np.std(ref))
     if scale > 0:
@@ -269,6 +270,7 @@ def analyze_categorical_column(
     alpha_effective: float,
 ) -> ColumnReport:
     """Полный набор тестов дрейфа для категориальной колонки."""
+    th = config.thresholds_for(column)
     ref = reference[column].dropna()
     cur = current[column].dropna()
     if len(ref) < config.min_samples or len(cur) < config.min_samples:
@@ -278,7 +280,7 @@ def analyze_categorical_column(
     n_total = len(set(ref.unique()) | set(cur.unique()))
     tests = _effect_tests(
         ref_counts, cur_counts, config,
-        {"n_categories": len(cats), "n_categories_total": n_total},
+        {"n_categories": len(cats), "n_categories_total": n_total}, th,
     )
 
     # Двухключевое правило: хи-квадрат срабатывает только при значимости И заметном эффекте.

@@ -20,7 +20,8 @@
 | **Drift Engines** (`drift_engines.py`) | Числовые: KS-тест, PSI, дистанция Йенсена–Шеннона, расстояние Вассерштейна. Категориальные: хи-квадрат, PSI, Йенсен–Шеннон. Пороги откалиброваны между собой, бутстреп-защита от малых выборок. |
 | **Adversarial Validation** (`adversarial.py`) | LightGBM учится отличать эталон от батча; ROC-AUC ≫ 0.5 — многомерный сдвиг подтверждён, feature importance показывает, что изменилось сильнее всего. |
 | **Концептуальный дрейф** (`guardian.py`) | Целевая переменная и предсказания модели анализируются отдельными блоками: признаки стабильны, а цель изменилась — отдельная рекомендация. |
-| **Мониторинг во времени** (`timeline.py`) | Поток батчей по дням/неделям/месяцам против одного эталона: статус и PSI по периодам, момент начала дрейфа. |
+| **Мониторинг во времени** (`timeline.py`) | Поток батчей по дням/неделям/месяцам: относительно фиксированного эталона (накопленный дрейф) и относительно предыдущего периода (скачки); момент начала дрейфа. |
+| **Разрез по сегментам** (`guardian.py`) | Анализ повторяется внутри каждого значения категориальной колонки (регион, канал): тепловая карта PSI «сегмент × признак», локальный дрейф поднимает общий статус. |
 | **Оркестратор** (`guardian.py`) | Единый отчёт: сводная серьёзность, алерты на русском, рекомендация «наблюдать / переобучать». |
 | **Визуализация и экспорт** (`plots.py`, `html_report.py`, `app/`, `cli.py`) | Графики «эталон vs батч» и по периодам (Plotly), дашборд Streamlit с подсветкой «поплывших» признаков, HTML-отчёты, JSON, YAML-конфиг, командная строка с кодом возврата. |
 
@@ -51,9 +52,20 @@ from drift_guardian import run_timeline_from_frame
 from drift_guardian.demo import make_timeline_demo
 
 reference, stream = make_timeline_demo(n_periods=8)             # поток с колонкой date
-timeline = run_timeline_from_frame(reference, stream, "date", "M", DriftConfig(target_column="target"))
+timeline = run_timeline_from_frame(
+    reference, stream, "date", "M", DriftConfig(target_column="target"), compare_previous=True
+)
 for period in timeline["periods"]:
-    print(period["label"], period["overall_severity"], period["n_critical"])
+    previous = period["vs_previous"]  # None у первого периода
+    print(period["label"], period["overall_severity"], "к предыдущему:", previous and previous["overall_severity"])
+```
+
+Разрез по сегментам:
+
+```python
+report = analyze(reference, current, DriftConfig(target_column="target", segment_column="region"))
+for segment in report["segments"]:
+    print(segment["label"], segment["overall_severity"], segment["psi_by_column"])
 ```
 
 Из командной строки (код возврата 0 — ok, 1 — warning, 2 — critical; для потока — худший период):
@@ -65,7 +77,11 @@ drift-guardian --reference data/demo/reference.csv --current data/demo/current_m
 
 ```bash
 drift-guardian --reference reference.csv --current stream.csv --date-column date --freq M \
-    --target target --html timeline.html
+    --compare-previous --target target --html timeline.html
+```
+
+```bash
+drift-guardian --reference reference.csv --current batch.csv --segment region --html report.html
 ```
 
 Демо-данные в виде CSV (эталон + шесть сценариев дрейфа, seed фиксирован):
@@ -86,10 +102,12 @@ streamlit run app/streamlit_app.py
 «новые категории у 11 % строк»), полосой PSI с порогами и мини-графиком «эталон vs батч»;
 затем блок целевой переменной, замечания к данным и подробности во вкладках (все признаки,
 распределения, схема и качество, adversarial validation, экспорт HTML / JSON / YAML).
-Два режима: **«Два батча»** и **«Временной ряд»** (статус и PSI по периодам, разбор любого
-периода). В боковой панели — источник данных (демо или свои CSV/Parquet), роли колонок;
-пороги и параметры убраны в раскрывающийся блок. Статусы передаются цветом и словом
-(«в норме», «внимание», «критично»). Deep-link: `?mode=stream`, `?scenario=concept_drift`.
+Два режима: **«Два батча»** и **«Временной ряд»** (статусы и PSI по периодам относительно эталона
+и относительно предыдущего периода, разбор любого периода против любого из них). В боковой
+панели — источник данных (демо или свои CSV/Parquet), роли колонок и разрез по сегментам
+(таблица и тепловая карта PSI «сегмент × признак»); пороги и параметры убраны в раскрывающийся
+блок. Статусы передаются цветом и словом («в норме», «внимание», «критично»). Deep-link:
+`?mode=stream`, `?scenario=concept_drift`, `?segment=region`.
 
 ## Docker
 
@@ -107,9 +125,12 @@ docker run --rm -p 8501:8501 drift-guardian
 target_column: target                 # целевая переменная → блок концептуального дрейфа
 prediction_column: null               # предсказания модели → блок дрейфа предсказаний
 exclude_columns: [customer_id, dt]    # идентификаторы и даты не анализируются
+segment_column: region                # разрез по сегментам (до max_segments самых частых значений)
 value_bounds: {age: [18, 90]}         # допустимые диапазоны по бизнес-правилам
 allowed_categories: {employment_type: [наёмный, ИП, самозанятый, безработный]}
 thresholds: {psi_warning: 0.1, psi_critical: 0.2}
+column_thresholds:                    # поколоночные переопределения порогов
+  income: {psi_warning: 0.2, psi_critical: 0.4}
 ```
 
 ```python
@@ -140,8 +161,11 @@ adversarial        {roc_auc, severity, backend, n_rows_used, top_features}
 meta               размеры выборок, списки колонок, alpha с поправкой, снимок конфига
 ```
 
-Для потока `run_timeline` возвращает `{"periods": [...], "columns": [...], "reference_rows", "meta"}`,
-где каждый период — статус, рекомендация, число критичных признаков, PSI по колонкам, алерты.
+Поле `segments` (если задана `segment_column`) — список сводок по сегментам: строки и доли,
+статус, число критичных признаков, PSI по колонкам, алерты. Для потока `run_timeline` возвращает
+`{"periods": [...], "columns": [...], "reference_rows", "meta"}`, где каждый период — статус,
+рекомендация, число критичных признаков, PSI по колонкам, алерты и, при `compare_previous=True`,
+такая же сводка `vs_previous` относительно предыдущего периода.
 
 Объектный API: `DriftGuardian(config).run(reference, current)` возвращает `DriftReport`
 (dataclass), `.to_dict()` — тот же словарь.
@@ -158,6 +182,9 @@ meta               размеры выборок, списки колонок, a
 | Прирост доли пропусков | ≥ 5 п.п. | ≥ 15 п.п. |
 | Доля значений вне диапазона | ≥ 1 % | ≥ 5 % |
 | Доля строк с недопустимыми категориями | ≥ 1 % | ≥ 5 % |
+
+Пороги настраиваются через `DriftConfig` / `Thresholds` и ползунками в дашборде; для отдельных
+признаков их переопределяет `column_thresholds` (шумные признаки, известная сезонность).
 
 ### Калибровка порогов
 
@@ -278,7 +305,7 @@ Dockerfile                 образ с дашбордом и CLI
 ## Тесты и качество
 
 ```bash
-pytest -q                          # 77 тестов, включая смоук-тесты дашборда
+pytest -q                          # 86 тестов, включая смоук-тесты дашборда
 pytest --cov=drift_guardian        # покрытие 94 %
 ruff check .                       # линтер
 ```
@@ -293,5 +320,5 @@ CI (GitHub Actions) прогоняет линтер и тесты на кажд�
 - Adversarial validation работает на подвыборке до 50 000 строк (настраивается).
 - Пороги по умолчанию — откалиброванные отраслевые ориентиры; для конкретной модели их стоит
   подобрать по историческим батчам (ползунки в дашборде, YAML в конфиге).
-- Режим временного ряда сравнивает каждый период с одним эталоном; скользящее окно эталона —
-  следующий шаг развития.
+- В режиме потока эталон фиксирован (плюс сравнение с предыдущим периодом); произвольное скользящее
+  окно эталона не поддерживается.

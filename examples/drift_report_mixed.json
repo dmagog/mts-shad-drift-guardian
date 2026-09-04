@@ -10,7 +10,11 @@
     "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.185 (p<1e-16), psi=0.193, jensen_shannon=0.185, wasserstein_norm=0.465.",
     "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.221 (p<1e-16), psi=0.388, jensen_shannon=0.26, wasserstein_norm=0.428.",
     "КРИТИЧНО: дрейф по признаку 'channel' — chi2=2.25e+03 (p<1e-16), psi=0.782, jensen_shannon=0.238.",
-    "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.845); сильнее всего изменились: loan_amount, income, channel."
+    "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.845); сильнее всего изменились: loan_amount, income, channel.",
+    "КРИТИЧНО: в сегменте region=Миллионники критический дрейф по признакам: age, loan_amount, channel.",
+    "КРИТИЧНО: в сегменте region=Прочие критический дрейф по признакам: age, income, loan_amount, channel.",
+    "КРИТИЧНО: в сегменте region=Москва критический дрейф по признакам: age, income, loan_amount, channel.",
+    "КРИТИЧНО: в сегменте region=Санкт-Петербург критический дрейф по признакам: age, loan_amount, channel."
   ],
   "schema": [],
   "data_quality": [
@@ -525,7 +529,7 @@
     "note": ""
   },
   "meta": {
-    "generated_at": "2026-09-04T17:56:29+00:00",
+    "generated_at": "2026-09-04T18:17:02+00:00",
     "reference_rows": 20000,
     "current_rows": 5000,
     "numeric_columns": [
@@ -546,6 +550,7 @@
     "excluded_columns": [],
     "insufficient_data": false,
     "notes": [],
+    "segment_column": "region",
     "target_column": "target",
     "prediction_column": null,
     "alpha_effective": 0.00625,
@@ -589,7 +594,11 @@
       "target_column": "target",
       "prediction_column": null,
       "value_bounds": null,
-      "allowed_categories": null
+      "allowed_categories": null,
+      "segment_column": "region",
+      "max_segments": 8,
+      "segment_adversarial": false,
+      "column_thresholds": null
     }
   },
   "target_drift": {
@@ -643,5 +652,179 @@
       }
     ]
   },
-  "prediction_drift": null
+  "prediction_drift": null,
+  "segments": [
+    {
+      "label": "Миллионники",
+      "rows": 1520,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 3,
+      "n_warning": 1,
+      "target_severity": "warning",
+      "adversarial_auc": null,
+      "alerts": [
+        "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 8.1% до 19.2% (+11.1 п.п.).",
+        "КРИТИЧНО: 17.5% значений 'loan_amount' вне диапазона эталона [5857, 1.23218e+06].",
+        "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 11.8% строк текущего батча.",
+        "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=84.1 (p<1e-16), jensen_shannon=0.106.",
+        "КРИТИЧНО: дрейф по признаку 'age' — ks=0.236 (p<1e-16), psi=0.359, jensen_shannon=0.25, wasserstein_norm=0.611.",
+        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.18 (p<1e-16), psi=0.172, jensen_shannon=0.174, wasserstein_norm=0.432.",
+        "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.234 (p<1e-16), psi=0.4, jensen_shannon=0.264, wasserstein_norm=0.417.",
+        "КРИТИЧНО: дрейф по признаку 'channel' — chi2=737 (p<1e-16), psi=0.854, jensen_shannon=0.248."
+      ],
+      "psi_by_column": {
+        "age": 0.3586,
+        "income": 0.172,
+        "loan_amount": 0.4004,
+        "credit_history_years": 0.0176,
+        "num_dependents": 0.0014,
+        "employment_type": 0.0017,
+        "channel": 0.8537
+      },
+      "severity_by_column": {
+        "age": "critical",
+        "income": "warning",
+        "loan_amount": "critical",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "channel": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 6062,
+      "share_reference": 0.3031,
+      "share_current": 0.304
+    },
+    {
+      "label": "Прочие",
+      "rows": 1517,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 4,
+      "n_warning": 0,
+      "target_severity": "warning",
+      "adversarial_auc": null,
+      "alerts": [
+        "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 7.6% до 20.0% (+12.4 п.п.).",
+        "КРИТИЧНО: 18.2% значений 'loan_amount' вне диапазона эталона [9244, 817029].",
+        "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 11.5% строк текущего батча.",
+        "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=126 (p<1e-16), jensen_shannon=0.129.",
+        "КРИТИЧНО: дрейф по признаку 'age' — ks=0.244 (p<1e-16), psi=0.351, jensen_shannon=0.248, wasserstein_norm=0.612.",
+        "КРИТИЧНО: дрейф по признаку 'income' — ks=0.192 (p<1e-16), psi=0.204, jensen_shannon=0.19, wasserstein_norm=0.513.",
+        "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.219 (p<1e-16), psi=0.407, jensen_shannon=0.266, wasserstein_norm=0.447.",
+        "КРИТИЧНО: дрейф по признаку 'channel' — chi2=702 (p<1e-16), psi=0.822, jensen_shannon=0.244."
+      ],
+      "psi_by_column": {
+        "age": 0.3512,
+        "income": 0.2037,
+        "loan_amount": 0.4071,
+        "credit_history_years": 0.0037,
+        "num_dependents": 0.0022,
+        "employment_type": 0.0035,
+        "channel": 0.8218
+      },
+      "severity_by_column": {
+        "age": "critical",
+        "income": "critical",
+        "loan_amount": "critical",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "channel": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 5975,
+      "share_reference": 0.2988,
+      "share_current": 0.3034
+    },
+    {
+      "label": "Москва",
+      "rows": 1225,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 4,
+      "n_warning": 0,
+      "target_severity": "warning",
+      "adversarial_auc": null,
+      "alerts": [
+        "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 7.6% до 19.9% (+12.3 п.п.).",
+        "КРИТИЧНО: 17.2% значений 'loan_amount' вне диапазона эталона [6661, 738749].",
+        "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 9.8% строк текущего батча.",
+        "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=136 (p<1e-16), psi=0.122, jensen_shannon=0.147.",
+        "КРИТИЧНО: дрейф по признаку 'age' — ks=0.235 (p<1e-16), psi=0.324, jensen_shannon=0.238, wasserstein_norm=0.596.",
+        "КРИТИЧНО: дрейф по признаку 'income' — ks=0.206 (p<1e-16), psi=0.229, jensen_shannon=0.201, wasserstein_norm=0.473.",
+        "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.22 (p<1e-16), psi=0.403, jensen_shannon=0.265, wasserstein_norm=0.428.",
+        "КРИТИЧНО: дрейф по признаку 'channel' — chi2=505 (p<1e-16), psi=0.688, jensen_shannon=0.226."
+      ],
+      "psi_by_column": {
+        "age": 0.3237,
+        "income": 0.2288,
+        "loan_amount": 0.403,
+        "credit_history_years": 0.0072,
+        "num_dependents": 0.0019,
+        "employment_type": 0.0031,
+        "channel": 0.6878
+      },
+      "severity_by_column": {
+        "age": "critical",
+        "income": "critical",
+        "loan_amount": "critical",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "channel": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 5027,
+      "share_reference": 0.2514,
+      "share_current": 0.245
+    },
+    {
+      "label": "Санкт-Петербург",
+      "rows": 738,
+      "overall_severity": "critical",
+      "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+      "n_critical": 3,
+      "n_warning": 1,
+      "target_severity": "warning",
+      "adversarial_auc": null,
+      "alerts": [
+        "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 7.4% до 17.1% (+9.6 п.п.).",
+        "КРИТИЧНО: 17.2% значений 'loan_amount' вне диапазона эталона [7983, 812001].",
+        "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 10.2% строк текущего батча.",
+        "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=89.4 (p<1e-16), psi=0.134, jensen_shannon=0.154.",
+        "КРИТИЧНО: дрейф по признаку 'age' — ks=0.252 (p<1e-16), psi=0.801, jensen_shannon=0.288, wasserstein_norm=0.596.",
+        "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.179 (p=1.5e-14), psi=0.197, jensen_shannon=0.187, wasserstein_norm=0.431.",
+        "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.214 (p<1e-16), psi=0.367, jensen_shannon=0.253, wasserstein_norm=0.414.",
+        "КРИТИЧНО: дрейф по признаку 'channel' — chi2=305 (p<1e-16), psi=0.715, jensen_shannon=0.229."
+      ],
+      "psi_by_column": {
+        "age": 0.8015,
+        "income": 0.1973,
+        "loan_amount": 0.3675,
+        "credit_history_years": 0.0158,
+        "num_dependents": 0.0003,
+        "employment_type": 0.0087,
+        "channel": 0.7151
+      },
+      "severity_by_column": {
+        "age": "critical",
+        "income": "warning",
+        "loan_amount": "critical",
+        "credit_history_years": "ok",
+        "num_dependents": "ok",
+        "employment_type": "ok",
+        "channel": "critical"
+      },
+      "insufficient": false,
+      "vs_previous": null,
+      "rows_reference": 2936,
+      "share_reference": 0.1468,
+      "share_current": 0.1476
+    }
+  ]
 }

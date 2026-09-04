@@ -1,7 +1,7 @@
 """Конфигурация Data Drift Guardian: пороги алертов, параметры анализа и контракт данных."""
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field, fields
+from dataclasses import asdict, dataclass, field, fields, replace
 from pathlib import Path
 from typing import Any
 
@@ -99,6 +99,25 @@ class DriftConfig:
     segment_column: str | None = None
     max_segments: int = 8
     segment_adversarial: bool = False
+    # Поколоночные пороги: {"income": {"psi_warning": 0.2, "psi_critical": 0.4}} переопределяют
+    # общие пороги для конкретного признака — шумные признаки, известная сезонность,
+    # колонки, по которым допустим больший сдвиг.
+    column_thresholds: dict[str, dict[str, float]] | None = None
+
+    def __post_init__(self) -> None:
+        known = {f.name for f in fields(Thresholds)}
+        for column, overrides in (self.column_thresholds or {}).items():
+            unknown = sorted(set(overrides) - known)
+            if unknown:
+                raise ValueError(f"Неизвестные пороги для колонки '{column}': {unknown}")
+
+    def thresholds_for(self, column: Any) -> Thresholds:
+        """Пороги для конкретной колонки: общие плюс переопределения из column_thresholds."""
+        overrides = self.column_thresholds or {}
+        specific = overrides.get(column)
+        if specific is None and not isinstance(column, str):
+            specific = overrides.get(str(column))
+        return replace(self.thresholds, **specific) if specific else self.thresholds
 
     def to_dict(self) -> dict:
         return asdict(self)

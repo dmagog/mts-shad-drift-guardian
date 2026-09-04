@@ -29,3 +29,14 @@ def test_yaml_roundtrip(tmp_path):
 def test_from_dict_rejects_unknown_keys():
     with pytest.raises(ValueError, match="Неизвестные параметры"):
         DriftConfig.from_dict({"psi": 0.1})
+
+
+def test_column_thresholds_override_and_validation(tmp_path):
+    config = DriftConfig(column_thresholds={"income": {"psi_warning": 0.3, "psi_critical": 0.6}})
+    assert config.thresholds_for("income").psi_warning == 0.3
+    assert config.thresholds_for("income").js_warning == config.thresholds.js_warning
+    assert config.thresholds_for("age") is config.thresholds
+    loaded = DriftConfig.from_yaml(config.to_yaml(tmp_path / "c.yaml"))
+    assert loaded.column_thresholds == {"income": {"psi_warning": 0.3, "psi_critical": 0.6}}
+    with pytest.raises(ValueError, match="Неизвестные пороги"):
+        DriftConfig(column_thresholds={"income": {"psi_warn": 0.3}})

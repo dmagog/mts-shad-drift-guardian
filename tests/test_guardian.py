@@ -186,3 +186,22 @@ def test_missing_segment_column_is_reported():
     report = analyze(reference, current, DriftConfig(segment_column="nope", adversarial_enabled=False))
     assert report["segments"] is None
     assert any(i["check"] == "segment_column_missing" for i in report["schema"])
+
+
+def test_column_thresholds_change_only_that_column():
+    reference, current = make_demo("mean_shift", 6000, 2000, seed=60)
+    base = analyze(reference, current, DriftConfig(target_column="target", adversarial_enabled=False))
+    relaxed = analyze(
+        reference, current,
+        DriftConfig(
+            target_column="target", adversarial_enabled=False,
+            column_thresholds={"age": {
+                "psi_warning": 1.0, "psi_critical": 2.0, "js_warning": 1.0, "js_critical": 1.0,
+                "wasserstein_warning": 5.0, "wasserstein_critical": 9.0,
+            }},
+        ),
+    )
+    by_col = lambda r: {c["column"]: c["severity"] for c in r["columns"]}  # noqa: E731
+    assert by_col(base)["age"] == "critical"
+    assert by_col(relaxed)["age"] == "ok"
+    assert by_col(base)["income"] == by_col(relaxed)["income"]

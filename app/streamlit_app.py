@@ -245,8 +245,10 @@ def sidebar() -> dict:
             if c != target_column and c not in exclude_columns
             and 2 <= reference[c].nunique(dropna=True) <= 12
         ]
+        segment_default = params.get("segment")
+        segment_index = segment_candidates.index(segment_default) + 1 if segment_default in segment_candidates else 0
         segment_choice = st.sidebar.selectbox(
-            "Разрез по сегментам", [NO_TARGET, *segment_candidates], format_func=str,
+            "Разрез по сегментам", [NO_TARGET, *segment_candidates], index=segment_index, format_func=str,
             help="Анализ повторяется внутри каждого значения колонки: где именно поплыло.",
         )
         segment_column = None if isinstance(segment_choice, str) and segment_choice == NO_TARGET else segment_choice
@@ -260,6 +262,7 @@ def sidebar() -> dict:
         auc_warning = st.slider("ROC-AUC, внимание", 0.50, 0.90, 0.55, 0.01)
         auc_critical = st.slider("ROC-AUC, критично", 0.50, 0.95, 0.65, 0.01)
         guard = st.checkbox("Защита от малых выборок", value=True)
+        st.caption("Поколоночные пороги задаются в YAML-конфиге (column_thresholds).")
 
     thresholds = Thresholds(
         psi_warning=psi_warning, psi_critical=max(psi_critical, psi_warning), alpha=float(alpha),
@@ -370,8 +373,8 @@ def render_segments(report: dict, key_prefix: str) -> None:
     column = report["meta"].get("segment_column")
     n_bad = sum(s["overall_severity"] != "ok" for s in segments)
     ui.section(f"По сегментам «{column}»", f"{len(segments)} сегментов, с дрейфом: {n_bad}")
-    left, right = st.columns([2, 3])
-    frame = segment_frame(segments)
+    left, right = st.columns(2)
+    frame = segment_frame(segments).drop(columns=["первый алерт"])
     frame["доля батча"] = (frame["доля батча"] * 100).round(0)
     left.dataframe(
         style_severity(frame), width="stretch", hide_index=True,

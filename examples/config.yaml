@@ -38,3 +38,8 @@ value_bounds:                    # допустимые диапазоны по 
   income: [0, 5000000]
 allowed_categories:              # допустимые категории по бизнес-правилам
   employment_type: ["наёмный", "ИП", "самозанятый", "безработный"]
+segment_column: region           # разрез по сегментам: анализ внутри каждого региона
+max_segments: 8
+segment_adversarial: false
+column_thresholds:               # поколоночные переопределения порогов
+  income: {psi_warning: 0.2, psi_critical: 0.4}
