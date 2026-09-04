@@ -31,7 +31,8 @@
         "region": "ok",
         "channel": "ok"
       },
-      "insufficient": false
+      "insufficient": false,
+      "vs_previous": null
     },
     {
       "label": "2026-02",
@@ -63,7 +64,40 @@
         "region": "ok",
         "channel": "ok"
       },
-      "insufficient": false
+      "insufficient": false,
+      "vs_previous": {
+        "label": "2026-02",
+        "rows": 3000,
+        "overall_severity": "ok",
+        "recommendation": "Дрейф не обнаружен, модель можно эксплуатировать в штатном режиме.",
+        "n_critical": 0,
+        "n_warning": 0,
+        "target_severity": "ok",
+        "adversarial_auc": 0.5311,
+        "alerts": [],
+        "psi_by_column": {
+          "age": 0.0113,
+          "income": 0.0139,
+          "loan_amount": 0.0054,
+          "credit_history_years": 0.0033,
+          "num_dependents": 0.0012,
+          "employment_type": 0.0025,
+          "region": 0.0018,
+          "channel": 0.001
+        },
+        "severity_by_column": {
+          "age": "ok",
+          "income": "ok",
+          "loan_amount": "ok",
+          "credit_history_years": "ok",
+          "num_dependents": "ok",
+          "employment_type": "ok",
+          "region": "ok",
+          "channel": "ok"
+        },
+        "insufficient": false,
+        "vs_previous": null
+      }
     },
     {
       "label": "2026-03",
@@ -97,7 +131,40 @@
         "region": "ok",
         "channel": "ok"
       },
-      "insufficient": false
+      "insufficient": false,
+      "vs_previous": {
+        "label": "2026-03",
+        "rows": 3000,
+        "overall_severity": "ok",
+        "recommendation": "Дрейф не обнаружен, модель можно эксплуатировать в штатном режиме.",
+        "n_critical": 0,
+        "n_warning": 0,
+        "target_severity": "ok",
+        "adversarial_auc": 0.5104,
+        "alerts": [],
+        "psi_by_column": {
+          "age": 0.0211,
+          "income": 0.017,
+          "loan_amount": 0.0057,
+          "credit_history_years": 0.004,
+          "num_dependents": 0.0034,
+          "employment_type": 0.0004,
+          "region": 0.0011,
+          "channel": 0.0
+        },
+        "severity_by_column": {
+          "age": "ok",
+          "income": "ok",
+          "loan_amount": "ok",
+          "credit_history_years": "ok",
+          "num_dependents": "ok",
+          "employment_type": "ok",
+          "region": "ok",
+          "channel": "ok"
+        },
+        "insufficient": false,
+        "vs_previous": null
+      }
     },
     {
       "label": "2026-04",
@@ -132,7 +199,40 @@
         "region": "ok",
         "channel": "ok"
       },
-      "insufficient": false
+      "insufficient": false,
+      "vs_previous": {
+        "label": "2026-04",
+        "rows": 3000,
+        "overall_severity": "ok",
+        "recommendation": "Дрейф не обнаружен, модель можно эксплуатировать в штатном режиме.",
+        "n_critical": 0,
+        "n_warning": 0,
+        "target_severity": "ok",
+        "adversarial_auc": 0.5173,
+        "alerts": [],
+        "psi_by_column": {
+          "age": 0.0136,
+          "income": 0.0061,
+          "loan_amount": 0.007,
+          "credit_history_years": 0.006,
+          "num_dependents": 0.0006,
+          "employment_type": 0.0039,
+          "region": 0.0014,
+          "channel": 0.0008
+        },
+        "severity_by_column": {
+          "age": "ok",
+          "income": "ok",
+          "loan_amount": "ok",
+          "credit_history_years": "ok",
+          "num_dependents": "ok",
+          "employment_type": "ok",
+          "region": "ok",
+          "channel": "ok"
+        },
+        "insufficient": false,
+        "vs_previous": null
+      }
     },
     {
       "label": "2026-05",
@@ -169,7 +269,43 @@
         "region": "ok",
         "channel": "ok"
       },
-      "insufficient": false
+      "insufficient": false,
+      "vs_previous": {
+        "label": "2026-05",
+        "rows": 3000,
+        "overall_severity": "warning",
+        "recommendation": "Обнаружены умеренные сдвиги, рекомендуется усиленный мониторинг.",
+        "n_critical": 0,
+        "n_warning": 0,
+        "target_severity": "ok",
+        "adversarial_auc": 0.5761,
+        "alerts": [
+          "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 8.7% до 19.6% (+10.9 п.п.).",
+          "ВНИМАНИЕ: adversarial validation различает выборки (ROC-AUC=0.576); сильнее всего изменились: income, loan_amount, age."
+        ],
+        "psi_by_column": {
+          "age": 0.0162,
+          "income": 0.0148,
+          "loan_amount": 0.0045,
+          "credit_history_years": 0.0137,
+          "num_dependents": 0.0016,
+          "employment_type": 0.0011,
+          "region": 0.0008,
+          "channel": 0.0005
+        },
+        "severity_by_column": {
+          "age": "ok",
+          "income": "ok",
+          "loan_amount": "ok",
+          "credit_history_years": "ok",
+          "num_dependents": "ok",
+          "employment_type": "ok",
+          "region": "ok",
+          "channel": "ok"
+        },
+        "insufficient": false,
+        "vs_previous": null
+      }
     },
     {
       "label": "2026-06",
@@ -208,7 +344,45 @@
         "region": "ok",
         "channel": "warning"
       },
-      "insufficient": false
+      "insufficient": false,
+      "vs_previous": {
+        "label": "2026-06",
+        "rows": 3000,
+        "overall_severity": "critical",
+        "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+        "n_critical": 0,
+        "n_warning": 2,
+        "target_severity": "ok",
+        "adversarial_auc": 0.7523,
+        "alerts": [
+          "ВНИМАНИЕ: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 3.2% строк текущего батча.",
+          "ВНИМАНИЕ: дрейф по признаку 'age' — ks=0.0463 (p=0.0032), jensen_shannon=0.109.",
+          "ВНИМАНИЕ: дрейф по признаку 'channel' — chi2=99.1 (p<1e-16), psi=0.184, jensen_shannon=0.126.",
+          "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.752); сильнее всего изменились: age, income, loan_amount."
+        ],
+        "psi_by_column": {
+          "age": 0.0661,
+          "income": 0.0141,
+          "loan_amount": 0.0016,
+          "credit_history_years": 0.0079,
+          "num_dependents": 0.0022,
+          "employment_type": 0.0022,
+          "region": 0.0027,
+          "channel": 0.1845
+        },
+        "severity_by_column": {
+          "age": "warning",
+          "income": "ok",
+          "loan_amount": "ok",
+          "credit_history_years": "ok",
+          "num_dependents": "ok",
+          "employment_type": "ok",
+          "region": "ok",
+          "channel": "warning"
+        },
+        "insufficient": false,
+        "vs_previous": null
+      }
     },
     {
       "label": "2026-07",
@@ -247,7 +421,42 @@
         "region": "ok",
         "channel": "critical"
       },
-      "insufficient": false
+      "insufficient": false,
+      "vs_previous": {
+        "label": "2026-07",
+        "rows": 3000,
+        "overall_severity": "critical",
+        "recommendation": "Зафиксирован критический дрейф, рекомендуется переобучение модели.",
+        "n_critical": 0,
+        "n_warning": 0,
+        "target_severity": "ok",
+        "adversarial_auc": 0.7671,
+        "alerts": [
+          "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.767); сильнее всего изменились: age, income, loan_amount."
+        ],
+        "psi_by_column": {
+          "age": 0.0053,
+          "income": 0.0083,
+          "loan_amount": 0.0083,
+          "credit_history_years": 0.0035,
+          "num_dependents": 0.0041,
+          "employment_type": 0.0016,
+          "region": 0.0033,
+          "channel": 0.0457
+        },
+        "severity_by_column": {
+          "age": "ok",
+          "income": "ok",
+          "loan_amount": "ok",
+          "credit_history_years": "ok",
+          "num_dependents": "ok",
+          "employment_type": "ok",
+          "region": "ok",
+          "channel": "ok"
+        },
+        "insufficient": false,
+        "vs_previous": null
+      }
     },
     {
       "label": "2026-08",
@@ -287,7 +496,42 @@
         "region": "ok",
         "channel": "critical"
       },
-      "insufficient": false
+      "insufficient": false,
+      "vs_previous": {
+        "label": "2026-08",
+        "rows": 3000,
+        "overall_severity": "warning",
+        "recommendation": "Обнаружены умеренные сдвиги, рекомендуется усиленный мониторинг.",
+        "n_critical": 0,
+        "n_warning": 0,
+        "target_severity": "warning",
+        "adversarial_auc": 0.538,
+        "alerts": [
+          "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=135 (p<1e-16), jensen_shannon=0.128."
+        ],
+        "psi_by_column": {
+          "age": 0.0155,
+          "income": 0.0078,
+          "loan_amount": 0.0076,
+          "credit_history_years": 0.0049,
+          "num_dependents": 0.0013,
+          "employment_type": 0.0013,
+          "region": 0.0009,
+          "channel": 0.0213
+        },
+        "severity_by_column": {
+          "age": "ok",
+          "income": "ok",
+          "loan_amount": "ok",
+          "credit_history_years": "ok",
+          "num_dependents": "ok",
+          "employment_type": "ok",
+          "region": "ok",
+          "channel": "ok"
+        },
+        "insufficient": false,
+        "vs_previous": null
+      }
     }
   ],
   "columns": [
@@ -301,7 +545,8 @@
     "channel"
   ],
   "meta": {
-    "generated_at": "2026-09-04T17:56:41+00:00",
+    "generated_at": "2026-09-04T18:09:00+00:00",
+    "compare_previous": true,
     "config": {
       "thresholds": {
         "psi_warning": 0.1,

@@ -123,6 +123,7 @@ _TIMELINE_BODY = Template(
 {{ hero|safe }}
 {{ dyn_section|safe }}
 <div class="dg-two"><div>{{ severity_html|safe }}</div><div>{{ psi_html|safe }}</div></div>
+{% if previous_html %}{{ previous_section|safe }}{{ previous_note|safe }}<div class="dg-two"><div>{{ previous_html|safe }}</div><div>{{ previous_psi_html|safe }}</div></div>{% endif %}
 {{ periods_section|safe }}
 <table>
 <thead><tr><th>Период</th><th>Строк</th><th>Статус</th><th>Таргет</th><th>Critical</th><th>Warning</th><th>Adversarial AUC</th><th>Алертов</th></tr></thead>
@@ -356,16 +357,25 @@ def render_timeline_html(
     thresholds = (timeline.get("meta", {}).get("config") or {}).get("thresholds") or {}
     periods_raw = timeline.get("periods", [])
     generated = (timeline.get("meta", {}).get("generated_at") or "").replace("T", " ")[:16]
-    severity_html, psi_html = _figures_to_html(
-        [
-            timeline_severity_figure(timeline, title=None),
+    figures = [
+        timeline_severity_figure(timeline, title=None),
+        timeline_psi_figure(
+            timeline, psi_warning=thresholds.get("psi_warning", 0.1),
+            psi_critical=thresholds.get("psi_critical", 0.2), title=None,
+        ),
+    ]
+    compare_previous = bool(timeline.get("meta", {}).get("compare_previous"))
+    if compare_previous:
+        figures += [
+            timeline_severity_figure(timeline, title=None, source="previous"),
             timeline_psi_figure(
                 timeline, psi_warning=thresholds.get("psi_warning", 0.1),
-                psi_critical=thresholds.get("psi_critical", 0.2), title=None,
+                psi_critical=thresholds.get("psi_critical", 0.2), title=None, source="previous",
             ),
-        ],
-        plotlyjs, [320, 320],
-    )
+        ]
+    htmls = _figures_to_html(figures, plotlyjs, [320] * len(figures))
+    severity_html, psi_html = htmls[0], htmls[1]
+    previous_html, previous_psi_html = (htmls[2], htmls[3]) if compare_previous else ("", "")
     periods = [
         {
             **p,
@@ -398,9 +408,17 @@ def render_timeline_html(
     body = _TIMELINE_BODY.render(
         topbar=topbar("мониторинг во времени", f"сформирован {generated}" if generated else ""),
         hero=hero_html,
-        dyn_section=section("Динамика по периодам"),
+        dyn_section=section("Динамика по периодам: относительно эталона"),
         severity_html=severity_html,
         psi_html=psi_html,
+        previous_section=section("Относительно предыдущего периода"),
+        previous_note=note(
+            "Сравнение с эталоном показывает накопленный дрейф, сравнение с предыдущим периодом — "
+            "скачки: медленно плывущий признак здесь остаётся в норме, резкое изменение видно "
+            "в том периоде, где произошло."
+        ),
+        previous_html=previous_html,
+        previous_psi_html=previous_psi_html,
         periods_section=section("Статус по периодам", f"{len(periods)}"),
         periods=periods,
         alerts_section=section("Алерты по периодам"),

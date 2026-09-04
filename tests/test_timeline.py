@@ -1,4 +1,5 @@
 """Тесты режима временного ряда."""
+import numpy as np
 import pandas as pd
 
 from drift_guardian import DriftConfig, run_timeline, run_timeline_from_frame, split_by_period
@@ -59,3 +60,41 @@ def test_tiny_period_is_marked_insufficient():
     assert tiny["rows"] == 12
     assert tiny["insufficient"] is True
     assert tiny["overall_severity"] == "warning"
+
+
+def _stream_with_jump(n_periods: int = 6, rows: int = 1500, jump_at: int = 3, seed: int = 11):
+    """Поток, где с периода ``jump_at`` возраст резко сдвигается и дальше не меняется."""
+    from drift_guardian.demo import make_base
+
+    frames = []
+    for i in range(n_periods):
+        rng = np.random.default_rng([seed, i])
+        batch = make_base(rng, rows)
+        if i >= jump_at:
+            batch["age"] = np.clip(batch["age"] + 8, 18, 85)
+        batch.insert(0, "date", pd.Timestamp("2026-01-01") + pd.DateOffset(months=i))
+        frames.append(batch)
+    return pd.concat(frames, ignore_index=True)
+
+
+def test_compare_previous_separates_jump_from_accumulated_drift():
+    reference, _ = make_timeline_demo(n_periods=1, rows_per_period=100, seed=11)
+    stream = _stream_with_jump()
+    config = DriftConfig(target_column="target", adversarial_enabled=False)
+    timeline = run_timeline_from_frame(reference, stream, "date", "M", config, compare_previous=True)
+    periods = timeline["periods"]
+    assert timeline["meta"]["compare_previous"] is True
+    assert periods[0]["vs_previous"] is None
+    # относительно эталона: все периоды после скачка критичны (накопленный дрейф)
+    assert [p["overall_severity"] for p in periods[3:]] == ["critical"] * 3
+    # относительно предыдущего периода: критичен только период скачка
+    jumps = [p["vs_previous"]["overall_severity"] for p in periods[1:]]
+    assert jumps[2] == "critical"
+    assert jumps[3] == "ok" and jumps[4] == "ok"
+
+
+def test_compare_previous_off_by_default():
+    reference, stream = make_timeline_demo(n_periods=2, rows_per_period=200, seed=12)
+    timeline = run_timeline_from_frame(reference, stream, "date", "M", DriftConfig(adversarial_enabled=False))
+    assert all(p["vs_previous"] is None for p in timeline["periods"])
+    assert timeline["meta"]["compare_previous"] is False

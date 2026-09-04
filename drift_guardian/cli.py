@@ -40,6 +40,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-adversarial", action="store_true", help="отключить adversarial validation")
     parser.add_argument("--date-column", help="режим потока: колонка даты для разбиения на периоды")
     parser.add_argument("--freq", default="M", choices=sorted(FREQ_LABELS), help="период потока: D, W, M, Q")
+    parser.add_argument(
+        "--compare-previous", action="store_true",
+        help="режим потока: дополнительно сравнивать каждый период с предыдущим (скачки)",
+    )
     parser.add_argument("--json", help="куда сохранить отчёт JSON")
     parser.add_argument("--html", help="куда сохранить отчёт HTML")
     parser.add_argument(
@@ -71,7 +75,9 @@ def _run_two_batches(args, config, reference, current) -> str:
 
 
 def _run_timeline(args, config, reference, stream) -> str:
-    timeline = run_timeline_from_frame(reference, stream, args.date_column, args.freq, config)
+    timeline = run_timeline_from_frame(
+        reference, stream, args.date_column, args.freq, config, args.compare_previous
+    )
     if args.json:
         _write_json(args.json, report_to_json(timeline))
     if args.html:
@@ -82,9 +88,11 @@ def _run_timeline(args, config, reference, stream) -> str:
     if not args.quiet:
         for p in periods:
             auc = f"{p['adversarial_auc']:.3f}" if p["adversarial_auc"] is not None else "—"
+            previous = p.get("vs_previous")
+            jump = f" к_предыдущему={previous['overall_severity']}" if previous else ""
             print(
                 f"  {p['label']}: {p['overall_severity']:<8} critical={p['n_critical']} "
-                f"warning={p['n_warning']} adversarial={auc} алертов={len(p['alerts'])}"
+                f"warning={p['n_warning']} adversarial={auc} алертов={len(p['alerts'])}{jump}"
             )
     return severity
 

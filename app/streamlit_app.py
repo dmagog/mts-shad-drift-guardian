@@ -111,9 +111,9 @@ def run_analysis(reference: pd.DataFrame, current: pd.DataFrame, config_dict: di
 
 @st.cache_data(show_spinner="Считаем метрики по периодам…")
 def run_stream(reference: pd.DataFrame, stream: pd.DataFrame, date_column: str, freq: str,
-               config_dict: dict) -> dict:
+               config_dict: dict, compare_previous: bool) -> dict:
     return run_timeline_from_frame(
-        reference, stream, date_column, freq, DriftConfig.from_dict(config_dict)
+        reference, stream, date_column, freq, DriftConfig.from_dict(config_dict), compare_previous
     )
 
 
@@ -169,6 +169,7 @@ def sidebar() -> dict:
     is_demo = source == "Демо"
     reference = current = stream = None
     date_column, freq, label = None, "M", ""
+    compare_previous = False
 
     if mode == MODE_PAIR:
         if is_demo:
@@ -217,6 +218,10 @@ def sidebar() -> dict:
                     "Период", list(FREQ_LABELS), index=2, format_func=lambda f: FREQ_LABELS[f]
                 )
                 label = f"{ref_file.name} → {stream_file.name} · по {FREQ_LABELS[freq]}"
+        compare_previous = st.sidebar.checkbox(
+            "Сравнивать и с предыдущим периодом", value=True,
+            help="К эталону — накопленный дрейф; к предыдущему периоду — скачки.",
+        )
 
     target_column = None
     exclude_columns: list[str] = []
@@ -255,6 +260,7 @@ def sidebar() -> dict:
     return {
         "mode": mode, "reference": reference, "current": current, "stream": stream,
         "date_column": date_column, "freq": freq, "config": config, "label": label,
+        "compare_previous": compare_previous,
     }
 
 
@@ -517,7 +523,10 @@ def main() -> None:
             "Или загрузите эталон и поток с колонкой даты; поток будет разрезан на периоды.",
         ])
         return
-    timeline = run_stream(reference, stream, state["date_column"], state["freq"], config.to_dict())
+    timeline = run_stream(
+        reference, stream, state["date_column"], state["freq"], config.to_dict(),
+        state["compare_previous"],
+    )
     periods = timeline["periods"]
     if not periods:
         ui.note("В потоке не нашлось ни одного периода с данными.")
@@ -540,26 +549,55 @@ def main() -> None:
             (" строк в эталоне", fmt_int(timeline["reference_rows"])),
         ],
     )
+    compare_previous = timeline["meta"].get("compare_previous", False)
     ui.section("Динамика по периодам")
-    left, right = st.columns([2, 3])
-    left.plotly_chart(timeline_severity_figure(timeline, title=None), width="stretch", theme=None, key="tl-sev")
-    right.plotly_chart(
-        timeline_psi_figure(timeline, psi_warning=config.thresholds.psi_warning,
-                            psi_critical=config.thresholds.psi_critical, title=None),
-        width="stretch", theme=None, key="tl-psi",
+    if compare_previous:
+        left, right = st.columns(2)
+        left.markdown("**Относительно эталона** — накопленный дрейф")
+        left.plotly_chart(timeline_severity_figure(timeline, title=None), width="stretch", theme=None, key="tl-sev")
+        right.markdown("**Относительно предыдущего периода** — скачки")
+        right.plotly_chart(
+            timeline_severity_figure(timeline, title=None, source="previous"),
+            width="stretch", theme=None, key="tl-sev-prev",
+        )
+        source_label = st.radio(
+            "PSI признаков", ["относительно эталона", "относительно предыдущего периода"],
+            horizontal=True, label_visibility="collapsed",
+        )
+        source = "previous" if source_label.endswith("периода") else "reference"
+    else:
+        left, right = st.columns([2, 3])
+        left.plotly_chart(timeline_severity_figure(timeline, title=None), width="stretch", theme=None, key="tl-sev")
+        source = "reference"
+    psi_fig = timeline_psi_figure(
+        timeline, psi_warning=config.thresholds.psi_warning,
+        psi_critical=config.thresholds.psi_critical, title=None, source=source,
     )
+    if compare_previous:
+        st.plotly_chart(psi_fig, width="stretch", theme=None, key=f"tl-psi-{source}")
+    else:
+        right.plotly_chart(psi_fig, width="stretch", theme=None, key="tl-psi")
     st.dataframe(style_severity(timeline_frame(timeline)), width="stretch", hide_index=True,
                  column_config=TIMELINE_FORMATS)
 
     labels = [p["label"] for p in periods]
-    pick_col, _ = st.columns([1, 3])
+    pick_col, base_col, _ = st.columns([1, 2, 2])
     chosen = pick_col.selectbox("Период для разбора", labels, index=len(labels) - 1)
-    ui.section(f"Период {chosen}")
     batches = dict(split_by_period(stream, state["date_column"], state["freq"]))
     current = batches[chosen]
-    report = run_analysis(reference, current, config.to_dict())
-    render_batch(report, reference, current, config, HEADLINES[report["overall_severity"]],
-                 timeline=timeline, key_prefix=f"tl-{chosen}")
+    baseline, baseline_label = reference, "эталона"
+    if compare_previous and labels.index(chosen) > 0:
+        against = base_col.radio(
+            "Сравнивать с", ["эталоном", "предыдущим периодом"], horizontal=True,
+            key=f"tl-against-{chosen}",
+        )
+        if against == "предыдущим периодом":
+            previous_label = labels[labels.index(chosen) - 1]
+            baseline, baseline_label = batches[previous_label], f"предыдущего периода {previous_label}"
+    ui.section(f"Период {chosen} относительно {baseline_label}")
+    report = run_analysis(baseline, current, config.to_dict())
+    render_batch(report, baseline, current, config, HEADLINES[report["overall_severity"]],
+                 timeline=timeline, key_prefix=f"tl-{chosen}-{baseline_label[:3]}")
 
 
 main()

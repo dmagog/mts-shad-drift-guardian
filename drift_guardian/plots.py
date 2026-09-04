@@ -215,17 +215,24 @@ SERIES_ORDER = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"
 _RANK_FOR_BAR = {"ok": 1, "warning": 2, "critical": 3}
 
 
+def _period_view(period: dict, source: str) -> dict | None:
+    """Сводка периода относительно эталона (``reference``) или предыдущего периода (``previous``)."""
+    return period if source == "reference" else period.get("vs_previous")
+
+
 def timeline_psi_figure(
     timeline: dict,
     top_n: int = 6,
     psi_warning: float = 0.1,
     psi_critical: float = 0.2,
     title: str | None = "PSI по периодам: признаки с наибольшим дрейфом",
+    source: str = "reference",
 ) -> go.Figure:
     """Линии PSI по периодам для top-N признаков и пунктирные пороги."""
     periods = [p["label"] for p in timeline["periods"]]
+    views = [_period_view(p, source) for p in timeline["periods"]]
     max_psi = {
-        col: max(p["psi_by_column"].get(col, 0.0) for p in timeline["periods"])
+        col: max((v["psi_by_column"].get(col, 0.0) for v in views if v), default=0.0)
         for col in timeline["columns"]
     }
     top = sorted(max_psi, key=max_psi.get, reverse=True)[:top_n]
@@ -233,7 +240,7 @@ def timeline_psi_figure(
     for color, col in zip(SERIES_ORDER, top, strict=False):
         fig.add_scatter(
             x=periods,
-            y=[p["psi_by_column"].get(col) for p in timeline["periods"]],
+            y=[v["psi_by_column"].get(col) if v else None for v in views],
             mode="lines+markers",
             name=col,
             line=dict(color=color, width=2),
@@ -249,18 +256,25 @@ def timeline_psi_figure(
     return _apply_layout(fig, title, "период", "PSI")
 
 
-def timeline_severity_figure(timeline: dict, title: str | None = "Статус по периодам") -> go.Figure:
-    """Столбцы уровня серьёзности по периодам: цвет статуса плюс подпись с иконкой."""
+def timeline_severity_figure(
+    timeline: dict, title: str | None = "Статус по периодам", source: str = "reference"
+) -> go.Figure:
+    """Столбцы уровня серьёзности по периодам: цвет статуса, подпись в подсказке.
+
+    ``source="previous"`` — статусы относительно предыдущего периода; первый период,
+    у которого предыдущего нет, показывается пустым.
+    """
     periods = [p["label"] for p in timeline["periods"]]
-    severities = [p["overall_severity"] for p in timeline["periods"]]
+    views = [_period_view(p, source) for p in timeline["periods"]]
     fig = go.Figure(
         go.Bar(
             x=periods,
-            y=[_RANK_FOR_BAR[s] for s in severities],
-            marker_color=[STATUS_COLORS[s] for s in severities],
+            y=[_RANK_FOR_BAR[v["overall_severity"]] if v else 0 for v in views],
+            marker_color=[STATUS_COLORS[v["overall_severity"]] if v else "#e1e0d9" for v in views],
             customdata=[
-                [STATUS_LABELS[s], p["n_critical"], p["n_warning"]]
-                for s, p in zip(severities, timeline["periods"], strict=True)
+                [STATUS_LABELS[v["overall_severity"]], v["n_critical"], v["n_warning"]]
+                if v else ["нет предыдущего периода", 0, 0]
+                for v in views
             ],
             hovertemplate="%{customdata[0]}<br>критичных признаков: %{customdata[1]}, "
                           "предупреждений: %{customdata[2]}<extra></extra>",
@@ -279,12 +293,18 @@ def timeline_severity_figure(timeline: dict, title: str | None = "Статус �
 def timeline_frame(timeline: dict) -> pd.DataFrame:
     """Таблица по периодам для дашборда и отчёта."""
     rows = []
+    compare_previous = timeline.get("meta", {}).get("compare_previous", False)
     for p in timeline["periods"]:
-        rows.append(
+        row = {
+            "период": p["label"],
+            "строк": p["rows"],
+            "статус": STATUS_LABELS[p["overall_severity"]],
+        }
+        if compare_previous:
+            previous = p.get("vs_previous")
+            row["к предыдущему"] = STATUS_LABELS[previous["overall_severity"]] if previous else "—"
+        row.update(
             {
-                "период": p["label"],
-                "строк": p["rows"],
-                "статус": STATUS_LABELS[p["overall_severity"]],
                 "таргет": STATUS_LABELS[p["target_severity"]] if p["target_severity"] else "—",
                 "critical": p["n_critical"],
                 "warning": p["n_warning"],
@@ -292,6 +312,7 @@ def timeline_frame(timeline: dict) -> pd.DataFrame:
                 "алертов": len(p["alerts"]),
             }
         )
+        rows.append(row)
     return pd.DataFrame(rows)
 
 
