@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Data Drift Guardian: система детекции дрейфа и контроля качества данных в продакшене</title><style>
+body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #0b0b0b; background: #f9f9f7; margin: 0; padding: 32px; line-height: 1.5; }
+main { max-width: 900px; margin: 0 auto; background: #fcfcfb; padding: 40px 48px; border: 1px solid #e1e0d9; border-radius: 12px; }
+h1 { font-size: 28px; margin-top: 0; } h2 { font-size: 21px; margin-top: 36px; border-bottom: 1px solid #e1e0d9; padding-bottom: 6px; }
+h3 { font-size: 17px; margin-top: 24px; } h4 { font-size: 15px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 12px 0; }
+th, td { padding: 6px 10px; border-bottom: 1px solid #e1e0d9; text-align: left; vertical-align: top; }
+th { color: #52514e; font-weight: 600; background: #f0efec; }
+code { background: #f0efec; padding: 1px 5px; border-radius: 4px; font-size: 90%; }
+pre { background: #f0efec; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 3px solid #2a78d6; margin: 12px 0; padding: 4px 16px; color: #52514e; }
+.muted { color: #52514e; font-size: 13px; }
+</style></head><body><main><h1 id="data-drift-guardian">Data Drift Guardian: система детекции дрейфа и контроля качества данных в продакшене</h1>
+<p><strong>Итоговый проект «4.0 Школы аналитиков данных» МТС, задача №4.</strong>
+Заказчик — Бояджи Владислав. Авторы — Георгий Мамарин и команда проекта. Сентябрь 2026.</p>
+<p>Репозиторий: <a href="https://github.com/dmagog/mts-shad-drift-guardian">https://github.com/dmagog/mts-shad-drift-guardian</a>. Дашборд: <code>streamlit run app/streamlit_app.py</code>
+или <code>docker run -p 8501:8501 drift-guardian</code>. Демонстрационный notebook: <code>notebooks/demo.ipynb</code>.</p>
+<h2 id="1">1. Постановка задачи</h2>
+<p>ML-модель в продакшене работает с непрерывным потоком данных, а мир вокруг неё меняется: сезонность,
+инфляция, новые продуктовые каналы, изменения в процессах сбора данных. Код модели при этом не ломается —
+предсказания генерируются, ошибок нет, — но их качество незаметно падает. Это дрейф данных
+(Data Drift), а если меняется связь между признаками и целевой переменной — концептуальный дрейф
+(Concept Drift). Для бизнеса это скрытые потери: кредитный скоринг начинает одобрять «не тех» клиентов,
+антифрод пропускает новые схемы.</p>
+<p>Заказчик поставил задачу: разработать прототип аналитической системы, которая <strong>без нейросетей</strong>,
+на математической статистике и классическом ML, принимает на вход эталонную выборку (на которой
+обучалась модель) и текущий продакшн-батч, проводит статистический анализ каждого признака,
+вычисляет метрики расстояний между распределениями, проверяет качество данных и строит дашборд
+с алертами. Ключевые требования ТЗ:</p>
+<ol>
+<li><strong>Data Quality</strong>: валидация типов, аномальное количество пропусков, дубликаты, соблюдение диапазонов Min/Max.</li>
+<li><strong>Drift Engines</strong>: тест Колмогорова–Смирнова и расстояние Вассерштейна для непрерывных признаков, хи-квадрат для категориальных.</li>
+<li><strong>Индексы стабильности</strong>: Population Stability Index и дивергенция Йенсена–Шеннона.</li>
+<li><strong>Единый контракт</strong>: два <code>pandas.DataFrame</code> на входе — структурированный словарь с метриками и флагами алертов на выходе.</li>
+<li><strong>Adversarial Validation</strong>: LightGBM-классификатор «прошлое против настоящего», ROC-AUC как интегральная мера дрейфа, feature importance как объяснение.</li>
+<li><strong>Дашборд</strong> на Streamlit (или HTML-отчёт через Plotly) с подсветкой «поплывших» признаков красным и системой алертов.</li>
+<li>Документация, unit-тесты, notebook на демонстрационном датасете с искусственно внесённым дрейфом, Dockerfile.</li>
+</ol>
+<p>Критерий успеха мы сформулировали так: система должна уверенно отличать батч без дрейфа от батчей с дрейфом
+разных типов, не шуметь на больших выборках, объяснять, что именно изменилось, и быть воспроизводимой
+на чистой машине по инструкции из README.</p>
+<h2 id="2">2. Обзор подходов</h2>
+<p><strong>Виды дрейфа.</strong> В литературе различают covariate shift (изменилось распределение признаков $P(X)$),
+prior shift (изменилась доля классов $P(Y)$) и concept drift (изменилась связь $P(Y\mid X)$).
+Первый виден по самим данным, второй — по целевой переменной, третий без разметки заметить
+невозможно, но его симптом — сдвиг $P(Y)$ при стабильном $P(X)$. Система покрывает все три случая:
+признаки, целевую переменную и предсказания модели она анализирует раздельно.</p>
+<p><strong>Статистические тесты</strong> отвечают на вопрос «мог ли такой сдвиг возникнуть случайно». Двухвыборочный
+тест Колмогорова–Смирнова сравнивает эмпирические функции распределения числовых признаков, хи-квадрат —
+частоты категорий. Их слабость известна: при десятках тысяч наблюдений статистически значимым становится
+любой микроскопический сдвиг, а на действительно одинаковых распределениях тесты ложно срабатывают
+с частотой α.</p>
+<p><strong>Метрики размера эффекта</strong> отвечают на вопрос «насколько велик сдвиг». Population Stability Index —
+отраслевой стандарт кредитного скоринга со шкалой 0.1 / 0.2. Дистанция Йенсена–Шеннона — симметричная,
+ограниченная [0, 1] версия дивергенции Кульбака–Лейблера. Расстояние Вассерштейна — «стоимость
+переноса» одного распределения в другое; нормированное на стандартное отклонение эталона, для сдвига
+среднего оно равно величине сдвига в σ.</p>
+<p><strong>Adversarial validation</strong> — приём из соревновательного ML: если классификатор умеет отличать строки
+эталона от строк батча, совместное распределение изменилось, а важности признаков показывают, где именно.
+В отличие от поколоночных тестов, метод ловит многомерные сдвиги — например, изменение корреляции
+дохода и суммы кредита при неизменных маргинальных распределениях.</p>
+<p>Ориентирами по подаче служили open-source библиотеки Evidently и NannyML; система не копирует их,
+а реализует те же идеи в объёме ТЗ и с собственной калибровкой порогов.</p>
+<h2 id="3">3. Архитектура решения</h2>
+<pre><code class="language-text"> reference.csv/parquet ─┐                                   ┌─ словарь-отчёт (контракт)
+                        ├─ Data Ingestion Core ─ Schema ─┐   ├─ дашборд Streamlit
+ current.csv/parquet ───┘   (io.py, schema.py)           │   ├─ HTML-отчёт (Plotly)
+                                                         ▼   ├─ JSON
+ DriftConfig (YAML) ──► Оркестратор DriftGuardian ───────────┤
+   пороги, роли колонок,   ├─ Data Quality (data_quality.py) └─ CLI, код возврата 0/1/2
+   контракт данных         ├─ Drift Engines (drift_engines.py)
+                           ├─ Adversarial Validation (adversarial.py)
+                           └─ Блоки target / prediction (концептуальный дрейф)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Модуль ТЗ</th>
+<th>Реализация</th>
+<th>Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data Ingestion Core</td>
+<td><code>io.py</code>, <code>schema.py</code>, <code>columns.py</code></td>
+<td>Читает CSV/Parquet, сверяет набор колонок и семейства типов, делит колонки на числовые и категориальные</td>
+</tr>
+<tr>
+<td>Statistical Tool Library</td>
+<td><code>drift_engines.py</code></td>
+<td>KS, PSI, JS, Вассерштейн, хи-квадрат — изолированные функции на <code>scipy.stats</code> и <code>numpy</code></td>
+</tr>
+<tr>
+<td>Data Quality</td>
+<td><code>data_quality.py</code></td>
+<td>Пропуски, дубликаты, диапазоны, допустимые категории, константные колонки</td>
+</tr>
+<tr>
+<td>Adversarial Validator Engine</td>
+<td><code>adversarial.py</code></td>
+<td>LightGBM + кросс-валидация, ROC-AUC, важности признаков</td>
+</tr>
+<tr>
+<td>Оркестратор и контракт</td>
+<td><code>guardian.py</code>, <code>contracts.py</code>, <code>config.py</code></td>
+<td>Сбор отчёта, алерты, рекомендация; dataclass-контракт; конфигурация и YAML</td>
+</tr>
+<tr>
+<td>Визуализация и отчёты</td>
+<td><code>plots.py</code>, <code>html_report.py</code>, <code>app/streamlit_app.py</code>, <code>cli.py</code></td>
+<td>Графики, дашборд, HTML/JSON, командная строка</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Контракт данных</strong> (<code>DriftConfig</code>) описывает роли колонок и бизнес-правила: целевая переменная,
+предсказания модели, исключаемые колонки (идентификаторы, даты), допустимые диапазоны значений
+и множества категорий. Если правила не заданы, они выводятся из эталона. Конфиг хранится в YAML
+рядом с моделью (<code>examples/config.yaml</code>).</p>
+<p><strong>Контракт результата</strong> — словарь с полями <code>overall_severity</code>, <code>recommendation</code>, <code>alerts</code>, <code>schema</code>,
+<code>data_quality</code>, <code>columns</code>, <code>target_drift</code>, <code>prediction_drift</code>, <code>adversarial</code>, <code>meta</code>. Каждый признак
+описан списком тестов <code>{name, statistic, p_value, severity, threshold, details}</code>. Пример —
+<code>examples/drift_report_mixed.json</code>.</p>
+<h2 id="4">4. Методология</h2>
+<h3 id="41">4.1 Типизация колонок и схема</h3>
+<p>Числовой dtype → числовая колонка, кроме целочисленных с не более чем 10 уникальными значениями
+(коды, флаги) — они категориальные. Строки, <code>category</code> и <code>bool</code> — категориальные. Правило
+переопределяется явными списками. Схема батча сверяется с эталоном: пропавшая колонка или смена
+семейства типа — критический алерт, новая колонка — предупреждение (она исключается из анализа).</p>
+<h3 id="42">4.2 Качество данных</h3>
+<p>По каждой колонке сравнивается доля пропусков (алерт при приросте ≥ 5 п.п., критично ≥ 15 п.п.),
+по таблице — доля полных дубликатов. Для числовых колонок считается доля значений вне допустимого
+диапазона, для категориальных — доля строк с недопустимыми категориями (1 % / 5 %). Отдельно
+отмечаются колонки, ставшие константными.</p>
+<h3 id="43">4.3 Тесты дрейфа</h3>
+<p>Для числового признака по эталону строятся 10 квантильных бинов (крайние открыты в бесконечность),
+и по ним считаются PSI $=\sum_i (q_i - p_i)\ln(q_i/p_i)$ и дистанция Йенсена–Шеннона
+$\sqrt{\tfrac12 KL(p|m) + \tfrac12 KL(q|m)}$, $m = (p+q)/2$, по основанию 2. Расстояние
+Вассерштейна первого порядка нормируется на стандартное отклонение эталона. Двухвыборочный
+KS-тест даёт p-value. Для категориального признака частоты считаются по объединённому множеству
+категорий (редкие сверх 20 группируются в «прочее»), считаются PSI, JS и хи-квадрат.</p>
+<h3 id="44">4.4 Калибровка порогов</h3>
+<p>Первая версия системы использовала «типовые» пороги из разных источников: PSI 0.1 / 0.2,
+Вассерштейн 0.1 / 0.3 (как в Evidently). Калибровочный эксперимент показал, что они несогласованы:
+сдвиг среднего на 0.3σ давал PSI 0.086 (норма) и одновременно Вассерштейн 0.30 (критично) — одна
+метрика перетягивала вердикт. Пороги были пересчитаны так, чтобы все три метрики размера эффекта
+срабатывали примерно на одном и том же сдвиге: warning около 0.3σ, critical около 0.5σ
+(таблица в разделе 6.2). Итоговые пороги: PSI 0.1 / 0.2, JS 0.1 / 0.2, Вассерштейн/σ 0.3 / 0.5.</p>
+<h3 id="45">4.5 Двухключевое правило и поправка на множественные сравнения</h3>
+<p>p-value-тест (KS или хи-квадрат) считается сработавшим, только если он статистически значим
+<strong>и</strong> хотя бы одна метрика размера эффекта превысила порог warning. Уровень critical определяют
+только метрики размера эффекта. Так система не шумит на больших выборках и не даёт ложных
+срабатываний на одинаковых распределениях, но p-value и флаг значимости всегда присутствуют
+в отчёте. Уровень значимости делится на число проверяемых колонок (поправка Бонферрони);
+для назначенных блоков — целевой переменной и предсказаний — поправка не применяется, это
+одна заранее заданная гипотеза.</p>
+<h3 id="46">4.6 Сглаживание долей</h3>
+<p>Доли в бинах и категориях ограничены снизу значением 10⁻⁴. Без этого PSI «взрывается» на любой
+категории, которой не было в эталоне: 1 % новой категории давал PSI 0.21 — критический алерт
+из-за одной редкой строки. Со сглаживанием 1 % → 0.05, 5 % → 0.31, что согласуется
+с порогами модуля качества данных для недопустимых категорий (1 % / 5 %).</p>
+<h3 id="47-adversarial-validation">4.7 Adversarial validation</h3>
+<p>Эталон и батч объединяются с меткой 0/1 (при необходимости — подвыборка до 50 000 строк),
+категории кодируются, LightGBM (200 деревьев, <code>learning_rate</code> 0.05) оценивается трёхкратной
+стратифицированной кросс-валидацией. ROC-AUC симметризуется как $\max(\text{AUC}, 1-\text{AUC})$;
+пороги 0.55 / 0.65. Важности признаков (gain) нормируются и попадают в отчёт. LightGBM запускается
+в один поток: на небольших выборках многопоточность замедляла обучение в 13 раз из-за накладных
+расходов.</p>
+<h3 id="48">4.8 Концептуальный дрейф</h3>
+<p>Если в конфиге указана целевая переменная, она исключается из анализа признаков и adversarial
+validation и анализируется отдельным блоком тем же набором тестов. Если блок цели критичен,
+а среди признаков критичных нет, рекомендация меняется: «признаки стабильны, но распределение
+целевой переменной изменилось — вероятен концептуальный дрейф, нужно переобучение на свежих
+размеченных данных». Аналогичный блок предусмотрен для предсказаний модели.</p>
+<h3 id="49">4.9 Агрегация</h3>
+<p>Итоговая серьёзность — наихудшая среди схемы, качества данных, признаков, adversarial validation
+и назначенных блоков. Каждому алерту соответствует человекочитаемая строка на русском языке
+с метриками и p-value.</p>
+<h2 id="5">5. Реализация</h2>
+<p><strong>Стек:</strong> Python 3.12, pandas, numpy, scipy, scikit-learn, LightGBM, Plotly, Streamlit, Jinja2,
+PyYAML; тесты — pytest и <code>streamlit.testing</code>; линтер — ruff; CI — GitHub Actions.</p>
+<p><strong>Пакет <code>drift_guardian</code></strong> — 13 модулей, публичный API <code>analyze(reference, current, config)</code> и
+объектный <code>DriftGuardian.run</code>. <strong>Дашборд</strong> (<code>app/streamlit_app.py</code>): выбор демо-сценария или загрузка
+своих файлов, роли колонок и пороги ползунками, цветной баннер со статусом, KPI, алерты, блок целевой
+переменной, вкладки «Сводка», «Распределения», «Схема и качество», «Adversarial validation», «Экспорт».
+Палитра графиков (синий эталон, оранжевый батч) проверена на различимость при дальтонизме;
+статусы всегда сопровождаются иконкой и подписью, а не только цветом. <strong>HTML-отчёт</strong> самодостаточен
+(Plotly.js встраивается или подгружается из CDN), <strong>JSON</strong> повторяет контракт. <strong>CLI</strong> <code>drift-guardian</code>
+возвращает код 0/1/2 по серьёзности — удобно для cron и CI. <strong>Docker-образ</strong> запускает дашборд одной
+командой.</p>
+<p><strong>Качество и воспроизводимость:</strong> 49 тестов (движки, качество данных, схема, adversarial validation,
+оркестратор, конфиг, CLI, HTML/JSON, смоук-тесты дашборда), CI на каждый push, зафиксированные
+версии зависимостей в <code>requirements-lock.txt</code>, детерминированный генератор демо-данных с seed,
+выполненный notebook с выводами.</p>
+<p><strong>Производительность:</strong> анализ 20 000 × 5 000 строк по 9 колонкам занимает 4–8 с на ноутбуке
+(основное время — adversarial validation), 32 000 × 5 500 строк по 15 колонкам — 17 с.</p>
+<h2 id="6">6. Эксперименты</h2>
+<p>Все числа ниже сгенерированы скриптом <code>scripts/experiments.py</code> и воспроизводимы.</p>
+<p>Сгенерировано скриптом <code>scripts/experiments.py</code>; все числа воспроизводимы (seed фиксирован).</p>
+<h3 id="1-">1. Демо-сценарии дрейфа</h3>
+<table>
+<thead>
+<tr>
+<th>Сценарий</th>
+<th>Итог</th>
+<th>Таргет</th>
+<th>Признаки critical</th>
+<th>Признаки warning</th>
+<th>DQ-алерты</th>
+<th>Adv. ROC-AUC</th>
+<th>Время, с</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>no_drift</td>
+<td>ok</td>
+<td>ok</td>
+<td>—</td>
+<td>—</td>
+<td>0</td>
+<td>0.503</td>
+<td>11.63</td>
+</tr>
+<tr>
+<td>mean_shift</td>
+<td>critical</td>
+<td>ok</td>
+<td>age</td>
+<td>income</td>
+<td>0</td>
+<td>0.756</td>
+<td>10.45</td>
+</tr>
+<tr>
+<td>missing_surge</td>
+<td>warning</td>
+<td>ok</td>
+<td>—</td>
+<td>—</td>
+<td>1</td>
+<td>0.553</td>
+<td>6.35</td>
+</tr>
+<tr>
+<td>new_category</td>
+<td>critical</td>
+<td>ok</td>
+<td>channel</td>
+<td>—</td>
+<td>1</td>
+<td>0.563</td>
+<td>8.18</td>
+</tr>
+<tr>
+<td>concept_drift</td>
+<td>critical</td>
+<td>critical</td>
+<td>—</td>
+<td>—</td>
+<td>0</td>
+<td>0.520</td>
+<td>7.7</td>
+</tr>
+<tr>
+<td>mixed</td>
+<td>critical</td>
+<td>warning</td>
+<td>age, loan_amount, channel</td>
+<td>income</td>
+<td>3</td>
+<td>0.845</td>
+<td>10.82</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2_1">2. Калибровка порогов</h3>
+<p><strong>Сдвиг среднего нормального признака на δ·σ</strong></p>
+<table>
+<thead>
+<tr>
+<th>δ</th>
+<th>PSI</th>
+<th>JS</th>
+<th>W/σ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.1</td>
+<td>0.010</td>
+<td>0.042</td>
+<td>0.100</td>
+</tr>
+<tr>
+<td>0.2</td>
+<td>0.040</td>
+<td>0.084</td>
+<td>0.204</td>
+</tr>
+<tr>
+<td>0.3</td>
+<td>0.086</td>
+<td>0.124</td>
+<td>0.299</td>
+</tr>
+<tr>
+<td>0.4</td>
+<td>0.153</td>
+<td>0.165</td>
+<td>0.400</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>0.239</td>
+<td>0.205</td>
+<td>0.499</td>
+</tr>
+<tr>
+<td>0.75</td>
+<td>0.528</td>
+<td>0.301</td>
+<td>0.746</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>0.928</td>
+<td>0.392</td>
+<td>1.000</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Изменение разброса σ → k·σ</strong></p>
+<table>
+<thead>
+<tr>
+<th>k</th>
+<th>PSI</th>
+<th>JS</th>
+<th>W/σ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.25</td>
+<td>0.063</td>
+<td>0.107</td>
+<td>0.198</td>
+</tr>
+<tr>
+<td>1.5</td>
+<td>0.195</td>
+<td>0.186</td>
+<td>0.398</td>
+</tr>
+<tr>
+<td>2.0</td>
+<td>0.491</td>
+<td>0.293</td>
+<td>0.796</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>0.849</td>
+<td>0.355</td>
+<td>0.400</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Новая категория с долей s (эталон 0.6 / 0.3 / 0.1)</strong></p>
+<table>
+<thead>
+<tr>
+<th>s</th>
+<th>PSI</th>
+<th>JS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1%</td>
+<td>0.046</td>
+<td>0.068</td>
+</tr>
+<tr>
+<td>3%</td>
+<td>0.171</td>
+<td>0.121</td>
+</tr>
+<tr>
+<td>5%</td>
+<td>0.313</td>
+<td>0.158</td>
+</tr>
+<tr>
+<td>10%</td>
+<td>0.701</td>
+<td>0.227</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Перенос доли ε из первой категории в третью</strong></p>
+<table>
+<thead>
+<tr>
+<th>ε</th>
+<th>PSI</th>
+<th>JS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5%</td>
+<td>0.025</td>
+<td>0.066</td>
+</tr>
+<tr>
+<td>10%</td>
+<td>0.088</td>
+<td>0.125</td>
+</tr>
+<tr>
+<td>15%</td>
+<td>0.181</td>
+<td>0.178</td>
+</tr>
+<tr>
+<td>20%</td>
+<td>0.301</td>
+<td>0.229</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-30">3. Ложные срабатывания на батчах без дрейфа (30 сидов)</h3>
+<table>
+<thead>
+<tr>
+<th>Правило</th>
+<th>Батчей с ложным алертом</th>
+<th>Колонок с ложным алертом</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Наивное: p-value &lt; α (с поправкой Бонферрони)</td>
+<td>2 из 30</td>
+<td>3 из 270</td>
+</tr>
+<tr>
+<td>Двухключевое (значимость + размер эффекта)</td>
+<td>0 из 30</td>
+<td>0 из 270</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-openml-bank-marketing">4. Реальные данные: OpenML bank-marketing</h3>
+<p>Эталон: 32249 строк (май–август), батч: 5501 строк (сентябрь–декабрь), признаков: 15, время анализа: 17.2 с.</p>
+<p>Итог: <strong>critical</strong>, целевая переменная <code>Class</code>: <strong>warning</strong>, adversarial ROC-AUC = 0.957.</p>
+<table>
+<thead>
+<tr>
+<th>Признак</th>
+<th>Тип</th>
+<th>Статус</th>
+<th>PSI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V6</td>
+<td>numeric</td>
+<td>critical</td>
+<td>0.280</td>
+</tr>
+<tr>
+<td>V10</td>
+<td>numeric</td>
+<td>critical</td>
+<td>0.946</td>
+</tr>
+<tr>
+<td>V13</td>
+<td>numeric</td>
+<td>critical</td>
+<td>0.281</td>
+</tr>
+<tr>
+<td>V14</td>
+<td>numeric</td>
+<td>critical</td>
+<td>0.337</td>
+</tr>
+<tr>
+<td>V15</td>
+<td>numeric</td>
+<td>critical</td>
+<td>0.343</td>
+</tr>
+<tr>
+<td>V9</td>
+<td>categorical</td>
+<td>critical</td>
+<td>1.177</td>
+</tr>
+<tr>
+<td>V16</td>
+<td>categorical</td>
+<td>critical</td>
+<td>0.347</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>categorical</td>
+<td>warning</td>
+<td>0.157</td>
+</tr>
+<tr>
+<td>V7</td>
+<td>categorical</td>
+<td>warning</td>
+<td>0.056</td>
+</tr>
+<tr>
+<td>V1</td>
+<td>numeric</td>
+<td>ok</td>
+<td>0.044</td>
+</tr>
+<tr>
+<td>V12</td>
+<td>numeric</td>
+<td>ok</td>
+<td>0.003</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>categorical</td>
+<td>ok</td>
+<td>0.000</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>categorical</td>
+<td>ok</td>
+<td>0.056</td>
+</tr>
+<tr>
+<td>V5</td>
+<td>categorical</td>
+<td>ok</td>
+<td>0.002</td>
+</tr>
+<tr>
+<td>V8</td>
+<td>categorical</td>
+<td>ok</td>
+<td>0.003</td>
+</tr>
+</tbody>
+</table>
+<p>Алерты:</p>
+<ul>
+<li>ВНИМАНИЕ: дрейф целевой переменной 'Class' — chi2=645 (p&lt;1e-16), psi=0.109, jensen_shannon=0.138.</li>
+<li>КРИТИЧНО: дрейф по признаку 'V6' — ks=0.215 (p&lt;1e-16), psi=0.28, jensen_shannon=0.221, wasserstein_norm=0.451.</li>
+<li>КРИТИЧНО: дрейф по признаку 'V10' — ks=0.336 (p&lt;1e-16), psi=0.946, jensen_shannon=0.402, wasserstein_norm=0.488.</li>
+<li>КРИТИЧНО: дрейф по признаку 'V13' — ks=0.199 (p&lt;1e-16), psi=0.281, jensen_shannon=0.22, wasserstein_norm=0.349.</li>
+<li>КРИТИЧНО: дрейф по признаку 'V14' — ks=0.238 (p&lt;1e-16), psi=0.337, jensen_shannon=0.241, wasserstein_norm=0.448.</li>
+<li>КРИТИЧНО: дрейф по признаку 'V15' — ks=0.237 (p&lt;1e-16), psi=0.343, jensen_shannon=0.244, wasserstein_norm=0.465.</li>
+<li>ВНИМАНИЕ: дрейф по признаку 'V2' — chi2=721 (p&lt;1e-16), psi=0.157, jensen_shannon=0.167.</li>
+<li>ВНИМАНИЕ: дрейф по признаку 'V7' — chi2=263 (p&lt;1e-16), jensen_shannon=0.1.</li>
+<li>КРИТИЧНО: дрейф по признаку 'V9' — chi2=2.92e+03 (p&lt;1e-16), psi=1.18, jensen_shannon=0.415.</li>
+<li>КРИТИЧНО: дрейф по признаку 'V16' — chi2=2.15e+03 (p&lt;1e-16), psi=0.347, jensen_shannon=0.245.</li>
+<li>КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.957); сильнее всего изменились: V10, V9, V14.</li>
+</ul>
+<h3 id="65">6.5 Интерпретация</h3>
+<p><strong>Демо-сценарии.</strong> Каждый сценарий распознан правильно: контрольный батч без дрейфа чист (0 алертов,
+ROC-AUC 0.50); сдвиг среднего пойман по <code>age</code> и <code>income</code> с подтверждением adversarial validation
+(0.76); рост пропусков дал ровно один алерт качества данных и уровень warning; новая категория
+канала — критический алерт качества и дрейф по <code>channel</code>. Сценарий концептуального дрейфа —
+ключевой: признаки стабильны, adversarial validation молчит (0.52), но блок целевой переменной
+критичен, и система выдаёт отдельную рекомендацию. Без выделенного блока цели этот случай остался
+бы невидимым.</p>
+<p><strong>Калибровка.</strong> Таблицы показывают, что после пересчёта порогов PSI, JS и Вассерштейн срабатывают
+на одном и том же сдвиге (0.3σ — warning по JS, 0.4σ — warning всеми, 0.5σ — critical), а на
+изменение разброса и перенос массы между категориями реагируют согласованно. Сглаживание убрало
+«взрыв» PSI на редких новых категориях.</p>
+<p><strong>Ложные срабатывания.</strong> На 30 батчах без дрейфа наивное правило «p-value &lt; α», даже с поправкой
+Бонферрони, дало ложные алерты в 2 батчах (3 колонки из 270); двухключевое правило — ни одного.
+Это цена, которую мы не платим за чувствительность: на сценариях с реальным дрейфом оба правила
+срабатывают одинаково.</p>
+<p><strong>Реальные данные.</strong> На датасете bank-marketing (UCI, через OpenML) эталоном служат контакты
+мая–августа, батчем — сентября–декабря. Признаки анонимизированы (<code>V1</code>–<code>V16</code>); по описанию исходного
+датасета <code>V6</code> — баланс счёта, <code>V9</code> — тип контакта, <code>V10</code> — день месяца, <code>V13</code> — число контактов
+в кампании, <code>V14</code>/<code>V15</code>/<code>V16</code> — история предыдущих кампаний, <code>Class</code> — согласие на депозит.
+Система за 17 с нашла критический дрейф по семи признакам с внятной картиной: осенью кампания
+работала с другими клиентами (тип контакта, история предыдущих кампаний), сместился баланс,
+а доля согласий выросла — блок целевой переменной дал warning (prior shift). Adversarial validation
+различает батчи почти идеально (0.957) — реальный сезонный дрейф многомерен и велик.</p>
+<h2 id="7">7. Ограничения и развитие</h2>
+<ul>
+<li>Колонки типов datetime и вложенных структур не анализируются; временные признаки нужно заранее
+  исключить или преобразовать.</li>
+<li>Пороги по умолчанию — откалиброванные отраслевые ориентиры; для конкретной модели их стоит подобрать
+  по историческим батчам (в дашборде это делается ползунками, в конфиге — YAML).</li>
+<li>Adversarial validation работает на подвыборке до 50 000 строк; для миллионов строк это осознанный
+  компромисс между точностью и временем.</li>
+<li>Развитие: мониторинг во времени (серия батчей и тренды метрик), интеграция с оркестраторами
+  (Airflow) через CLI, алерты в мессенджеры, автоматический подбор порогов по истории.</li>
+</ul>
+<h2 id="8">8. Выводы</h2>
+<p>Построен прототип системы мониторинга дрейфа и качества данных, полностью закрывающий требования ТЗ:
+четыре аналитических модуля, строгий контракт «два DataFrame → словарь с метриками и флагами»,
+дашборд с подсветкой поплывших признаков, HTML/JSON-экспорт, CLI, Docker, тесты, CI и notebook.
+Сверх ТЗ реализованы контракт данных с бизнес-правилами, отдельный блок концептуального дрейфа
+по целевой переменной, калибровка порогов и двухключевое правило, снимающее главную практическую
+проблему статистических тестов — шум на больших выборках. Эксперименты на синтетических сценариях
+и реальном датасете подтверждают, что система различает типы дрейфа, объясняет их и не даёт ложных
+тревог на стабильных данных.</p>
+<h2 id="_1">Приложение А. Как воспроизвести</h2>
+<pre><code class="language-bash">git clone https://github.com/dmagog/mts-shad-drift-guardian &amp;&amp; cd mts-shad-drift-guardian
+python -m venv .venv &amp;&amp; source .venv/bin/activate &amp;&amp; pip install -e &quot;.[dev]&quot;
+pytest -q                                          # тесты
+python scripts/experiments.py --out report         # эксперименты (раздел 6)
+python scripts/build_report.py                     # этот отчёт в HTML
+streamlit run app/streamlit_app.py                 # дашборд
+</code></pre>
+<h2 id="_2">Приложение Б. Соответствие требованиям ТЗ</h2>
+<table>
+<thead>
+<tr>
+<th>Требование ТЗ</th>
+<th>Где реализовано</th>
+<th>Проверка</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data Quality: типы, NaN, дубликаты, Min/Max</td>
+<td><code>schema.py</code>, <code>data_quality.py</code></td>
+<td><code>tests/test_schema.py</code>, <code>tests/test_data_quality.py</code></td>
+</tr>
+<tr>
+<td>KS-тест, Вассерштейн, хи-квадрат</td>
+<td><code>drift_engines.py</code></td>
+<td><code>tests/test_drift_engines.py</code></td>
+</tr>
+<tr>
+<td>PSI и Jensen–Shannon</td>
+<td><code>drift_engines.py</code></td>
+<td><code>tests/test_drift_engines.py</code></td>
+</tr>
+<tr>
+<td>Контракт: два DataFrame → словарь с метриками и флагами</td>
+<td><code>guardian.py</code>, <code>contracts.py</code></td>
+<td><code>tests/test_guardian.py</code></td>
+</tr>
+<tr>
+<td>Adversarial Validation, ROC-AUC, Feature Importance</td>
+<td><code>adversarial.py</code></td>
+<td><code>tests/test_adversarial.py</code></td>
+</tr>
+<tr>
+<td>Schema Validation</td>
+<td><code>schema.py</code></td>
+<td><code>tests/test_schema.py</code></td>
+</tr>
+<tr>
+<td>Дашборд Streamlit с подсветкой и алертами / HTML через Plotly</td>
+<td><code>app/streamlit_app.py</code>, <code>html_report.py</code></td>
+<td><code>tests/test_app.py</code>, <code>tests/test_report.py</code></td>
+</tr>
+<tr>
+<td>Документация, unit-тесты, notebook</td>
+<td><code>README.md</code>, <code>tests/</code>, <code>notebooks/demo.ipynb</code></td>
+<td>CI</td>
+</tr>
+<tr>
+<td>Dockerfile, воспроизводимость</td>
+<td><code>Dockerfile</code>, <code>requirements-lock.txt</code>, <code>scripts/</code></td>
+<td>сборка образа, <code>pip install -e .</code></td>
+</tr>
+</tbody>
+</table></main></body></html>

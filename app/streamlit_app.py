@@ -3,10 +3,11 @@
 Запуск:
     streamlit run app/streamlit_app.py
 
-Слева — источник данных (демо-сценарий или свои CSV/Parquet) и пороги алертов,
-справа — сводный статус, алерты и вкладки с деталями. «Поплывшие» признаки
-подсвечены красным (critical) и жёлтым (warning) — всегда вместе с иконкой
-и подписью, чтобы статус читался и без цвета.
+Слева — источник данных (демо-сценарий или свои CSV/Parquet), роли колонок
+и пороги алертов; справа — сводный статус, алерты, блок целевой переменной
+и вкладки с деталями. «Поплывшие» признаки подсвечены красным (critical)
+и жёлтым (warning) — всегда вместе с иконкой и подписью, чтобы статус
+читался и без цвета.
 """
 from __future__ import annotations
 
@@ -38,7 +39,13 @@ SUMMARY_FORMATS = {
     "KS / χ²": st.column_config.NumberColumn(format="%.3f"),
     "p-value": st.column_config.NumberColumn(format="%.2e"),
 }
+TEST_FORMATS = {
+    "статистика": st.column_config.NumberColumn(format="%.4f"),
+    "p-value": st.column_config.NumberColumn(format="%.2e"),
+}
 FILE_TYPES = ["csv", "parquet", "pq"]
+NO_TARGET = "— нет —"
+SPECIAL_TITLES = {"target_drift": "🎯 Целевая переменная", "prediction_drift": "🔮 Предсказания модели"}
 
 
 # ---------- данные и расчёт (кэшируются) ----------
@@ -65,6 +72,27 @@ def fmt_int(value: int) -> str:
     return f"{value:,}".replace(",", " ")
 
 
+def distribution_figure(kind: str, reference: pd.Series, current: pd.Series, title: str):
+    if kind == "numeric":
+        return numeric_distribution_figure(reference, current, title=title)
+    return categorical_distribution_figure(reference, current, title=title)
+
+
+def tests_frame(tests: list[dict]) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "тест": t["name"],
+                "статистика": t["statistic"],
+                "p-value": t["p_value"],
+                "статус": STATUS_LABELS[t["severity"]],
+                "порог": t.get("threshold") or "",
+            }
+            for t in tests
+        ]
+    )
+
+
 # ---------- боковая панель ----------
 
 def sidebar():
@@ -76,7 +104,8 @@ def sidebar():
     )
     reference = current = None
     label = ""
-    if source == "Демо-сценарий":
+    is_demo = source == "Демо-сценарий"
+    if is_demo:
         scenario = st.sidebar.selectbox(
             "Сценарий дрейфа",
             list(SCENARIOS),
@@ -94,6 +123,21 @@ def sidebar():
             reference = read_table(ref_file.getvalue(), ref_file.name)
             current = read_table(cur_file.getvalue(), cur_file.name)
             label = f"{ref_file.name} → {cur_file.name}"
+
+    target_column = None
+    exclude_columns: list[str] = []
+    if reference is not None:
+        st.sidebar.subheader("Роли колонок")
+        columns = [str(c) for c in reference.columns]
+        default_index = columns.index("target") + 1 if is_demo and "target" in columns else 0
+        chosen = st.sidebar.selectbox(
+            "Целевая переменная (концептуальный дрейф)", [NO_TARGET, *columns], index=default_index
+        )
+        target_column = None if chosen == NO_TARGET else chosen
+        exclude_columns = st.sidebar.multiselect(
+            "Исключить из анализа (идентификаторы, даты)",
+            [c for c in columns if c != target_column],
+        )
 
     st.sidebar.subheader("Пороги алертов")
     psi_warning = st.sidebar.slider("PSI — warning", 0.01, 0.50, 0.10, 0.01)
@@ -116,13 +160,41 @@ def sidebar():
         adversarial_auc_critical=max(auc_critical, auc_warning),
     )
     config = DriftConfig(
-        thresholds=thresholds, bonferroni=bonferroni, adversarial_enabled=adversarial_on
+        thresholds=thresholds,
+        bonferroni=bonferroni,
+        adversarial_enabled=adversarial_on,
+        target_column=target_column,
+        exclude_columns=exclude_columns or None,
     )
     st.sidebar.caption("Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС")
     return reference, current, config, label
 
 
-# ---------- вкладки ----------
+# ---------- блоки страницы ----------
+
+def render_special_blocks(report: dict, reference: pd.DataFrame, current: pd.DataFrame) -> None:
+    feature_ok = all(c["severity"] != "critical" for c in report["columns"])
+    for key, title in SPECIAL_TITLES.items():
+        block = report.get(key)
+        if not block:
+            continue
+        column = block["column"]
+        st.subheader(f"{title} «{column}» — {STATUS_LABELS[block['severity']]}")
+        left, right = st.columns([3, 2])
+        left.plotly_chart(
+            distribution_figure(block["kind"], reference[column], current[column], column),
+            width="stretch", theme=None,
+        )
+        right.dataframe(
+            style_severity(tests_frame(block["tests"])), width="stretch",
+            hide_index=True, column_config=TEST_FORMATS,
+        )
+        if key == "target_drift" and block["severity"] == "critical" and feature_ok:
+            right.warning(
+                "Признаки стабильны, а целевая переменная изменилась — вероятен "
+                "концептуальный дрейф: изменилась связь «признаки → цель»."
+            )
+
 
 def render_summary_tab(report: dict) -> None:
     frame = column_summary_frame(report)
@@ -144,39 +216,20 @@ def render_distributions_tab(report: dict, reference: pd.DataFrame, current: pd.
     if frame.empty:
         st.info("Нет признаков для анализа.")
         return
-    status_by_column = dict(zip(frame["признак"], frame["статус"]))
+    status_by_column = dict(zip(frame["признак"], frame["статус"], strict=True))
     column = st.selectbox(
         "Признак (худшие сверху)",
         frame["признак"].tolist(),
         format_func=lambda c: f"{status_by_column[c]}   {c}",
     )
     col_report = next(c for c in report["columns"] if c["column"] == column)
-    if col_report["kind"] == "numeric":
-        fig = numeric_distribution_figure(reference[column], current[column], title=column)
-    else:
-        fig = categorical_distribution_figure(reference[column], current[column], title=column)
-    st.plotly_chart(fig, width="stretch", theme=None)
-
-    tests = pd.DataFrame(
-        [
-            {
-                "тест": t["name"],
-                "статистика": t["statistic"],
-                "p-value": t["p_value"],
-                "статус": STATUS_LABELS[t["severity"]],
-                "порог": t.get("threshold") or "",
-            }
-            for t in col_report["tests"]
-        ]
+    st.plotly_chart(
+        distribution_figure(col_report["kind"], reference[column], current[column], column),
+        width="stretch", theme=None,
     )
     st.dataframe(
-        style_severity(tests),
-        width="stretch",
-        hide_index=True,
-        column_config={
-            "статистика": st.column_config.NumberColumn(format="%.4f"),
-            "p-value": st.column_config.NumberColumn(format="%.2e"),
-        },
+        style_severity(tests_frame(col_report["tests"])), width="stretch",
+        hide_index=True, column_config=TEST_FORMATS,
     )
 
 
@@ -186,9 +239,14 @@ def render_quality_tab(report: dict) -> None:
         st.dataframe(style_severity(issues_frame(issues)), width="stretch", hide_index=True)
     else:
         st.success("Замечаний к схеме и качеству данных нет.")
-    skipped = report["meta"].get("skipped_columns") or []
-    if skipped:
-        st.caption(f"Не анализировались (неподдерживаемый тип): {', '.join(skipped)}")
+    meta = report["meta"]
+    notes = []
+    if meta.get("skipped_columns"):
+        notes.append(f"не анализировались (неподдерживаемый тип): {', '.join(meta['skipped_columns'])}")
+    if meta.get("excluded_columns"):
+        notes.append(f"исключены по настройке: {', '.join(meta['excluded_columns'])}")
+    if notes:
+        st.caption("; ".join(notes).capitalize())
 
 
 def render_adversarial_tab(report: dict) -> None:
@@ -273,6 +331,8 @@ def main() -> None:
         with st.expander(f"Алерты ({len(report['alerts'])})", expanded=True):
             for alert in report["alerts"]:
                 st.markdown(f"- {alert}")
+
+    render_special_blocks(report, reference, current)
 
     tabs = st.tabs(
         ["Сводка по признакам", "Распределения", "Схема и качество", "Adversarial validation", "Экспорт"]

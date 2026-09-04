@@ -6,8 +6,9 @@
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
-from typing import Any, Iterable, Literal
+from typing import Any, Literal
 
 Severity = Literal["ok", "warning", "critical"]
 
@@ -17,6 +18,15 @@ _SEVERITY_ORDER: dict[str, int] = {"ok": 0, "warning": 1, "critical": 2}
 def worst(severities: Iterable[Severity]) -> Severity:
     """Наихудшая из степеней серьёзности (ok < warning < critical)."""
     return max(severities, key=_SEVERITY_ORDER.__getitem__, default="ok")
+
+
+def grade(value: float, warning: float, critical: float) -> Severity:
+    """Степень серьёзности по двум порогам: >= critical → critical, >= warning → warning."""
+    if value >= critical:
+        return "critical"
+    if value >= warning:
+        return "warning"
+    return "ok"
 
 
 @dataclass
@@ -75,6 +85,9 @@ class DriftReport:
     columns: list[ColumnReport]
     adversarial: AdversarialReport | None
     meta: dict[str, Any]
+    # Отдельные блоки: целевая переменная (концептуальный дрейф) и предсказания модели.
+    target_drift: ColumnReport | None = None
+    prediction_drift: ColumnReport | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)

@@ -3,16 +3,11 @@ import numpy as np
 import pandas as pd
 
 from drift_guardian import DriftConfig, analyze
+from drift_guardian.demo import make_demo
 
 EXPECTED_KEYS = {
-    "overall_severity",
-    "recommendation",
-    "alerts",
-    "schema",
-    "data_quality",
-    "columns",
-    "adversarial",
-    "meta",
+    "overall_severity", "recommendation", "alerts", "schema", "data_quality",
+    "columns", "adversarial", "meta", "target_drift", "prediction_drift",
 }
 
 
@@ -37,6 +32,7 @@ def test_contract_keys_present():
     assert isinstance(report, dict)
     assert EXPECTED_KEYS <= set(report.keys())
     assert report["meta"]["reference_rows"] == 2000
+    assert report["target_drift"] is None
 
 
 def test_no_drift_overall_ok():
@@ -70,3 +66,44 @@ def test_config_override_respected():
     config = DriftConfig(bonferroni=False)
     report = analyze(_make(rng, 1000), _make(rng, 1000), config)
     assert report["meta"]["alpha_effective"] == config.thresholds.alpha
+
+
+def test_exclude_columns_are_not_analyzed():
+    rng = np.random.default_rng(25)
+    report = analyze(
+        _make(rng, 1500), _make(rng, 1500, drift=True), DriftConfig(exclude_columns=["age"])
+    )
+    assert "age" not in [c["column"] for c in report["columns"]]
+    assert report["meta"]["excluded_columns"] == ["age"]
+    assert all("'age'" not in alert for alert in report["alerts"] if "дрейф по признаку" in alert)
+
+
+def test_target_drift_is_reported_separately_as_concept_drift():
+    reference, current = make_demo("concept_drift", 4000, 2000, seed=3)
+    report = analyze(reference, current, DriftConfig(target_column="target"))
+    assert report["target_drift"]["column"] == "target"
+    assert report["target_drift"]["severity"] == "critical"
+    assert "target" not in [c["column"] for c in report["columns"]]
+    assert all(c["severity"] != "critical" for c in report["columns"])
+    assert report["overall_severity"] == "critical"
+    assert "концептуальный" in report["recommendation"]
+    assert any("целевой переменной" in alert for alert in report["alerts"])
+
+
+def test_missing_target_column_gives_warning_not_crash():
+    rng = np.random.default_rng(26)
+    report = analyze(_make(rng, 500), _make(rng, 500), DriftConfig(target_column="nope"))
+    assert report["target_drift"] is None
+    assert any(i["check"] == "target_column_missing" for i in report["schema"])
+
+
+def test_declared_bounds_and_categories_from_contract():
+    rng = np.random.default_rng(27)
+    ref = pd.DataFrame({"x": rng.uniform(0, 1, 800), "c": rng.choice(list("ab"), 800)})
+    cur = pd.DataFrame({"x": rng.uniform(0, 1, 800), "c": rng.choice(list("ab"), 800)})
+    config = DriftConfig(value_bounds={"x": (0.0, 0.5)}, allowed_categories={"c": ["a"]})
+    report = analyze(ref, cur, config)
+    checks = {i["check"]: i for i in report["data_quality"]}
+    assert checks["out_of_range"]["severity"] == "critical"
+    assert "контракта" in checks["out_of_range"]["message"]
+    assert checks["new_categories"]["severity"] == "critical"

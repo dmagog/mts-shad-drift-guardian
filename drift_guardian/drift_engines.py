@@ -10,6 +10,12 @@
 (warning), только если одновременно хотя бы одна метрика размера эффекта
 (PSI, JS, Вассерштейн) превысила свой порог warning. Сила сдвига — и уровень
 critical — определяется только метриками размера эффекта.
+
+Про сглаживание. Доли в бинах/категориях ограничены снизу значением
+``MIN_SHARE`` (1e-4): без этого PSI «взрывается» на любой категории, которой
+не было в эталоне (1 % новой категории давал бы PSI > 0.2). С таким сглаживанием
+1 % новой категории → PSI ≈ 0.05, 5 % → ≈ 0.3, что согласуется с порогами
+модуля Data Quality для новых категорий.
 """
 from __future__ import annotations
 
@@ -19,17 +25,9 @@ from scipy import stats
 from scipy.spatial.distance import jensenshannon
 
 from .config import DriftConfig
-from .contracts import ColumnReport, Severity, TestResult, worst
+from .contracts import ColumnReport, TestResult, grade, worst
 
-_EPS = 1e-6
-
-
-def _grade(value: float, warning: float, critical: float) -> Severity:
-    if value >= critical:
-        return "critical"
-    if value >= warning:
-        return "warning"
-    return "ok"
+MIN_SHARE = 1e-4
 
 
 # ---------- подготовка распределений ----------
@@ -50,8 +48,7 @@ def category_frequencies(
     """Частоты категорий по объединённому множеству значений.
 
     Редкие категории (за пределами топ-``max_categories`` по эталону)
-    группируются в «__прочее__», чтобы хи-квадрат не разваливался
-    на длинных хвостах.
+    группируются в «__прочее__», чтобы хи-квадрат не разваливался на длинных хвостах.
     """
     ref = reference.dropna().astype(object)
     cur = current.dropna().astype(object)
@@ -67,8 +64,12 @@ def category_frequencies(
 
 
 def _smooth(counts: np.ndarray) -> np.ndarray:
-    p = counts.astype(float) + _EPS
-    return p / p.sum()
+    """Доли с нижней границей MIN_SHARE (защита от нулей в логарифме)."""
+    counts = np.asarray(counts, dtype=float)
+    total = counts.sum()
+    shares = counts / total if total > 0 else np.full(len(counts), 1.0 / len(counts))
+    shares = np.clip(shares, MIN_SHARE, None)
+    return shares / shares.sum()
 
 
 def psi_from_counts(ref_counts: np.ndarray, cur_counts: np.ndarray) -> float:
@@ -78,9 +79,19 @@ def psi_from_counts(ref_counts: np.ndarray, cur_counts: np.ndarray) -> float:
 
 
 def js_from_counts(ref_counts: np.ndarray, cur_counts: np.ndarray) -> float:
-    """Дистанция Йенсена–Шеннона (симметризованная KL), диапазон [0, 1]."""
+    """Дистанция Йенсена–Шеннона (корень из симметризованной KL), диапазон [0, 1]."""
     p, q = _smooth(ref_counts), _smooth(cur_counts)
     return float(jensenshannon(p, q, base=2))
+
+
+def _skipped(column: str, kind: str, config: DriftConfig) -> ColumnReport:
+    skipped = TestResult(
+        name="skipped",
+        statistic=0.0,
+        severity="ok",
+        details={"reason": f"меньше {config.min_samples} непустых значений"},
+    )
+    return ColumnReport(column=column, kind=kind, severity="ok", tests=[skipped])
 
 
 # ---------- анализ колонок ----------
@@ -96,15 +107,8 @@ def analyze_numeric_column(
     th = config.thresholds
     ref = pd.to_numeric(reference[column], errors="coerce").dropna().to_numpy(dtype=float)
     cur = pd.to_numeric(current[column], errors="coerce").dropna().to_numpy(dtype=float)
-
     if len(ref) < config.min_samples or len(cur) < config.min_samples:
-        skipped = TestResult(
-            name="skipped",
-            statistic=0.0,
-            severity="ok",
-            details={"reason": f"меньше {config.min_samples} непустых значений"},
-        )
-        return ColumnReport(column=column, kind="numeric", severity="ok", tests=[skipped])
+        return _skipped(column, "numeric", config)
 
     tests: list[TestResult] = []
 
@@ -117,7 +121,7 @@ def analyze_numeric_column(
         TestResult(
             name="psi",
             statistic=round(psi, 4),
-            severity=_grade(psi, th.psi_warning, th.psi_critical),
+            severity=grade(psi, th.psi_warning, th.psi_critical),
             threshold=f"warning >= {th.psi_warning}, critical >= {th.psi_critical}",
             details={"n_bins": len(edges) - 1},
         )
@@ -128,7 +132,7 @@ def analyze_numeric_column(
         TestResult(
             name="jensen_shannon",
             statistic=round(js, 4),
-            severity=_grade(js, th.js_warning, th.js_critical),
+            severity=grade(js, th.js_warning, th.js_critical),
             threshold=f"warning >= {th.js_warning}, critical >= {th.js_critical}",
         )
     )
@@ -140,12 +144,9 @@ def analyze_numeric_column(
             TestResult(
                 name="wasserstein_norm",
                 statistic=round(wasserstein, 4),
-                severity=_grade(
-                    wasserstein, th.wasserstein_warning, th.wasserstein_critical
-                ),
+                severity=grade(wasserstein, th.wasserstein_warning, th.wasserstein_critical),
                 threshold=(
-                    f"warning >= {th.wasserstein_warning}, "
-                    f"critical >= {th.wasserstein_critical}"
+                    f"warning >= {th.wasserstein_warning}, critical >= {th.wasserstein_critical}"
                 ),
                 details={"scale_std": round(scale, 6)},
             )
@@ -186,15 +187,8 @@ def analyze_categorical_column(
     th = config.thresholds
     ref = reference[column].dropna()
     cur = current[column].dropna()
-
     if len(ref) < config.min_samples or len(cur) < config.min_samples:
-        skipped = TestResult(
-            name="skipped",
-            statistic=0.0,
-            severity="ok",
-            details={"reason": f"меньше {config.min_samples} непустых значений"},
-        )
-        return ColumnReport(column=column, kind="categorical", severity="ok", tests=[skipped])
+        return _skipped(column, "categorical", config)
 
     ref_counts, cur_counts, cats = category_frequencies(ref, cur, config.max_categories)
     tests: list[TestResult] = []
@@ -204,7 +198,7 @@ def analyze_categorical_column(
         TestResult(
             name="psi",
             statistic=round(psi, 4),
-            severity=_grade(psi, th.psi_warning, th.psi_critical),
+            severity=grade(psi, th.psi_warning, th.psi_critical),
             threshold=f"warning >= {th.psi_warning}, critical >= {th.psi_critical}",
             details={"n_categories": len(cats)},
         )
@@ -215,7 +209,7 @@ def analyze_categorical_column(
         TestResult(
             name="jensen_shannon",
             statistic=round(js, 4),
-            severity=_grade(js, th.js_warning, th.js_critical),
+            severity=grade(js, th.js_warning, th.js_critical),
             threshold=f"warning >= {th.js_warning}, critical >= {th.js_critical}",
         )
     )

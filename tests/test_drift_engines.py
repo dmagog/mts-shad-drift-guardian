@@ -68,3 +68,19 @@ def test_categorical_same_distribution_is_ok():
 def test_psi_zero_for_identical_counts():
     counts = np.array([100.0, 200.0, 300.0])
     assert abs(psi_from_counts(counts, counts)) < 1e-9
+
+
+def test_psi_new_category_is_smoothed():
+    ref_counts = np.array([600.0, 300.0, 100.0, 0.0])
+    one_percent = np.array([594.0, 297.0, 99.0, 10.0])
+    five_percent = np.array([570.0, 285.0, 95.0, 50.0])
+    assert psi_from_counts(ref_counts, one_percent) < 0.1   # 1 % новой категории — ещё ok
+    assert psi_from_counts(ref_counts, five_percent) > 0.2  # 5 % — уже critical
+
+
+def test_wasserstein_thresholds_aligned_with_psi():
+    """Сдвиг на 0.2σ не должен давать алерт ни по одной метрике эффекта."""
+    rng = np.random.default_rng(5)
+    ref, cur = _frames(rng.normal(0, 1, 20000), rng.normal(0.2, 1, 20000))
+    report = analyze_numeric_column("x", ref, cur, DriftConfig(), alpha_effective=0.05)
+    assert report.severity == "ok"

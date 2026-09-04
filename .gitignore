@@ -12,3 +12,5 @@ reports_out/
 # Системное
 .DS_Store
 .ipynb_checkpoints/
+notebooks/output/
+report/*.html.tmp

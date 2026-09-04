@@ -1,0 +1,40 @@
+# Пример конфигурации Data Drift Guardian.
+# Загрузка: DriftConfig.from_yaml("examples/config.yaml") или drift-guardian --config examples/config.yaml
+thresholds:
+  psi_warning: 0.1
+  psi_critical: 0.2
+  alpha: 0.05
+  js_warning: 0.1
+  js_critical: 0.2
+  wasserstein_warning: 0.3
+  wasserstein_critical: 0.5
+  adversarial_auc_warning: 0.55
+  adversarial_auc_critical: 0.65
+  missing_delta_warning: 0.05
+  missing_delta_critical: 0.15
+  out_of_range_warning: 0.01
+  out_of_range_critical: 0.05
+  new_category_warning: 0.01
+  new_category_critical: 0.05
+  duplicates_delta_warning: 0.05
+  duplicates_delta_critical: 0.15
+
+n_bins: 10
+bonferroni: true
+max_categories: 20
+categorical_int_unique_limit: 10
+min_samples: 20
+adversarial_enabled: true
+adversarial_max_rows: 50000
+adversarial_n_jobs: 1
+random_state: 42
+
+# Роли колонок и контракт данных (пример для демо-датасета кредитного скоринга)
+target_column: target            # анализируется отдельным блоком — концептуальный дрейф
+prediction_column: null          # колонка с предсказаниями модели, если есть
+exclude_columns: []              # идентификаторы, даты, служебные поля
+value_bounds:                    # допустимые диапазоны по бизнес-правилам
+  age: [18, 90]
+  income: [0, 5000000]
+allowed_categories:              # допустимые категории по бизнес-правилам
+  employment_type: ["наёмный", "ИП", "самозанятый", "безработный"]

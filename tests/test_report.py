@@ -23,7 +23,9 @@ def _demo():
 def test_demo_is_reproducible():
     a, b = make_demo("mixed", 500, 200, seed=7), make_demo("mixed", 500, 200, seed=7)
     assert a[0].equals(b[0]) and a[1].equals(b[1])
-    assert set(SCENARIOS) == {"no_drift", "mean_shift", "missing_surge", "new_category", "mixed"}
+    assert set(SCENARIOS) == {
+        "no_drift", "mean_shift", "missing_surge", "new_category", "concept_drift", "mixed"
+    }
 
 
 def test_numeric_figure_has_two_series():
@@ -73,6 +75,16 @@ def test_html_report_contains_alerts_and_plots(tmp_path):
         assert column in html
     path = save_html_report(tmp_path / "report.html", report, ref, cur, plotlyjs="cdn")
     assert path.exists() and path.stat().st_size > 10_000
+
+
+def test_html_report_has_target_block_and_concept_note():
+    from drift_guardian import DriftConfig
+
+    ref, cur = make_demo("concept_drift", ref_rows=3000, cur_rows=1500, seed=3)
+    report = analyze(ref, cur, DriftConfig(target_column="target"))
+    html = render_html_report(report, ref, cur, plotlyjs="cdn")
+    assert "Целевая переменная" in html
+    assert "концептуальный дрейф" in html
 
 
 def test_json_roundtrip():

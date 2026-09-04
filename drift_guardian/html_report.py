@@ -25,6 +25,14 @@ from .plots import (
 SUMMARY_HEADERS = [
     "Признак", "Тип", "Статус", "PSI", "JS", "Вассерштейн (норм.)", "KS / χ²", "p-value",
 ]
+SPECIAL_TITLES = {
+    "target_drift": "Целевая переменная",
+    "prediction_drift": "Предсказания модели",
+}
+CONCEPT_DRIFT_NOTE = (
+    "Признаки стабильны, а целевая переменная изменилась — вероятен концептуальный дрейф: "
+    "изменилась связь между признаками и целью, а не сами входные данные."
+)
 
 _TEMPLATE = Template(
     """<!doctype html>
@@ -52,6 +60,7 @@ _TEMPLATE = Template(
   details { background: #fcfcfb; border: 1px solid #e1e0d9; border-radius: 8px; padding: 8px 12px; margin: 8px 0; }
   summary { cursor: pointer; font-weight: 600; }
   ul { padding-left: 20px; } li { margin: 4px 0; }
+  .note { background: #fff4d6; border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
 </style>
 </head>
 <body><main>
@@ -75,6 +84,18 @@ _TEMPLATE = Template(
   {% if alerts %}<ul>{% for alert in alerts %}<li>{{ alert }}</li>{% endfor %}</ul>
   {% else %}<p>Алертов нет — распределения стабильны.</p>{% endif %}
 </section>
+
+{% for block in special_blocks %}
+<section>
+  <h2>{{ block.title }} «{{ block.column }}» — {{ block.label }}</h2>
+  {% if block.note %}<p class="note">{{ block.note }}</p>{% endif %}
+  <table>
+    <thead><tr><th>Тест</th><th>Статистика</th><th>p-value</th><th>Статус</th></tr></thead>
+    <tbody>{% for t in block.tests %}<tr class="{{ t.severity }}"><td>{{ t.name }}</td><td class="num">{{ t.statistic }}</td><td class="num">{{ t.p_value }}</td><td>{{ t.label }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {{ block.html|safe }}
+</section>
+{% endfor %}
 
 <section>
   <h2>Сводка по признакам</h2>
@@ -118,7 +139,7 @@ _TEMPLATE = Template(
 </section>
 
 <footer class="muted">
-  <p>Пороги: PSI warning ≥ {{ th.psi_warning }}, critical ≥ {{ th.psi_critical }} · JS warning ≥ {{ th.js_warning }}, critical ≥ {{ th.js_critical }} · α = {{ th.alpha }}{% if meta.alpha_effective %} (с поправкой {{ '%.3g'|format(meta.alpha_effective) }}){% endif %} · adversarial ROC-AUC warning ≥ {{ th.adversarial_auc_warning }}, critical ≥ {{ th.adversarial_auc_critical }}.</p>
+  <p>Пороги: PSI warning ≥ {{ th.psi_warning }}, critical ≥ {{ th.psi_critical }} · JS warning ≥ {{ th.js_warning }}, critical ≥ {{ th.js_critical }} · Вассерштейн/σ warning ≥ {{ th.wasserstein_warning }}, critical ≥ {{ th.wasserstein_critical }} · α = {{ th.alpha }}{% if meta.alpha_effective %} (с поправкой {{ '%.3g'|format(meta.alpha_effective) }}){% endif %} · adversarial ROC-AUC warning ≥ {{ th.adversarial_auc_warning }}, critical ≥ {{ th.adversarial_auc_critical }}.</p>
   <p>Data Drift Guardian · итоговый проект 4.0 Школы аналитиков данных МТС</p>
 </footer>
 </main></body></html>
@@ -135,23 +156,28 @@ def _fmt(value: Any, digits: int = 3) -> str:
 def _fmt_p(value: Any) -> str:
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return ""
-    return f"{float(value):.2g}"
+    value = float(value)
+    return "<1e-16" if value < 1e-16 else f"{value:.2g}"
+
+
+def _distribution_figure(kind: str, reference: pd.Series, current: pd.Series, title: str) -> go.Figure:
+    if kind == "numeric":
+        return numeric_distribution_figure(reference, current, title=title)
+    return categorical_distribution_figure(reference, current, title=title)
 
 
 def _figures_to_html(figures: list[go.Figure], plotlyjs: str) -> list[str]:
     """Первая фигура несёт plotly.js (inline или cdn), остальные — только данные."""
     first = True if plotlyjs == "inline" else "cdn"
-    htmls = []
-    for index, fig in enumerate(figures):
-        htmls.append(
-            fig.to_html(
-                full_html=False,
-                include_plotlyjs=first if index == 0 else False,
-                config={"displaylogo": False, "responsive": True},
-                default_height=360,
-            )
+    return [
+        fig.to_html(
+            full_html=False,
+            include_plotlyjs=first if index == 0 else False,
+            config={"displaylogo": False, "responsive": True},
+            default_height=360,
         )
-    return htmls
+        for index, fig in enumerate(figures)
+    ]
 
 
 def render_html_report(
@@ -178,14 +204,9 @@ def render_html_report(
             {
                 "severity": severity_from_label(row["статус"]),
                 "cells": [
-                    row["признак"],
-                    row["тип"],
-                    row["статус"],
-                    _fmt(row["PSI"]),
-                    _fmt(row["JS"]),
-                    _fmt(row["Вассерштейн (норм.)"]),
-                    _fmt(row["KS / χ²"]),
-                    _fmt_p(row["p-value"]),
+                    row["признак"], row["тип"], row["статус"],
+                    _fmt(row["PSI"]), _fmt(row["JS"]), _fmt(row["Вассерштейн (норм.)"]),
+                    _fmt(row["KS / χ²"]), _fmt_p(row["p-value"]),
                 ],
             }
         )
@@ -195,38 +216,74 @@ def render_html_report(
         for issue in (*report.get("schema", []), *report.get("data_quality", []))
     ]
 
+    # Отдельные блоки: целевая переменная и предсказания.
+    # Ранг 0 — critical; если минимальный ранг среди признаков > 0, критичных признаков нет.
+    features_without_critical = (
+        min((SEVERITY_RANK[c["severity"]] for c in report.get("columns", [])), default=2) > 0
+    )
+    special_figs: list[go.Figure] = []
+    special_meta: list[dict] = []
+    for key, block_title in SPECIAL_TITLES.items():
+        block = report.get(key)
+        if not block:
+            continue
+        name = block["column"]
+        if name not in reference.columns or name not in current.columns:
+            continue
+        note = ""
+        if key == "target_drift" and block["severity"] == "critical" and features_without_critical:
+            note = CONCEPT_DRIFT_NOTE
+        special_figs.append(_distribution_figure(block["kind"], reference[name], current[name], name))
+        special_meta.append(
+            {
+                "title": block_title,
+                "column": name,
+                "label": STATUS_LABELS[block["severity"]],
+                "note": note,
+                "tests": [
+                    {
+                        "name": t["name"],
+                        "statistic": _fmt(t["statistic"], 4),
+                        "p_value": _fmt_p(t.get("p_value")),
+                        "severity": t["severity"],
+                        "label": STATUS_LABELS[t["severity"]],
+                    }
+                    for t in block["tests"]
+                ],
+            }
+        )
+
     columns_sorted = sorted(
         report.get("columns", []),
         key=lambda c: (SEVERITY_RANK[c["severity"]], c["column"]),
     )
-    figures: list[go.Figure] = []
+    column_figs: list[go.Figure] = []
     plot_meta: list[dict] = []
     for col in columns_sorted[:max_plots]:
         name = col["column"]
         if name not in reference.columns or name not in current.columns:
             continue
-        if col["kind"] == "numeric":
-            fig = numeric_distribution_figure(reference[name], current[name], title=name)
-        else:
-            fig = categorical_distribution_figure(reference[name], current[name], title=name)
-        figures.append(fig)
+        column_figs.append(_distribution_figure(col["kind"], reference[name], current[name], name))
         plot_meta.append(
-            {
-                "column": name,
-                "label": STATUS_LABELS[col["severity"]],
-                "open": col["severity"] != "ok",
-            }
+            {"column": name, "label": STATUS_LABELS[col["severity"]], "open": col["severity"] != "ok"}
         )
     plots_skipped = max(0, len(columns_sorted) - len(plot_meta))
 
     adversarial = report.get("adversarial")
     has_importance = bool(adversarial and adversarial.get("top_features"))
+    figures = [*special_figs, *column_figs]
     if has_importance:
         figures.append(feature_importance_figure(adversarial["top_features"]))
 
     htmls = _figures_to_html(figures, plotlyjs)
-    importance_html = htmls.pop() if has_importance else ""
-    plots = [{**m, "html": h} for m, h in zip(plot_meta, htmls)]
+    n_special, n_columns = len(special_figs), len(column_figs)
+    special_blocks = [
+        {**m, "html": h} for m, h in zip(special_meta, htmls[:n_special], strict=True)
+    ]
+    plots = [
+        {**m, "html": h} for m, h in zip(plot_meta, htmls[n_special:n_special + n_columns], strict=True)
+    ]
+    importance_html = htmls[n_special + n_columns] if has_importance else ""
 
     return _TEMPLATE.render(
         title=title,
@@ -237,6 +294,7 @@ def render_html_report(
         meta=meta,
         n_columns=len(report.get("columns", [])),
         alerts=report.get("alerts", []),
+        special_blocks=special_blocks,
         summary_headers=SUMMARY_HEADERS,
         summary_rows=summary_rows,
         issues=issues,
@@ -252,8 +310,13 @@ def render_html_report(
     )
 
 
-def save_html_report(path: str | Path, report: dict, reference: pd.DataFrame,
-                     current: pd.DataFrame, **kwargs: Any) -> Path:
+def save_html_report(
+    path: str | Path,
+    report: dict,
+    reference: pd.DataFrame,
+    current: pd.DataFrame,
+    **kwargs: Any,
+) -> Path:
     """Сохраняет HTML-отчёт на диск и возвращает путь."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -268,6 +331,8 @@ def _json_default(obj: Any):
         return float(obj)
     if isinstance(obj, np.ndarray):
         return obj.tolist()
+    if isinstance(obj, tuple):
+        return list(obj)
     return str(obj)
 
 

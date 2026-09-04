@@ -1,0 +1,496 @@
+{
+  "overall_severity": "critical",
+  "recommendation": "Зафиксирован критический дрейф — рекомендуется переобучение модели.",
+  "alerts": [
+    "ВНИМАНИЕ: Доля пропусков в 'income' выросла с 7.7% до 19.3% (+11.6 п.п.).",
+    "КРИТИЧНО: 16.8% значений 'loan_amount' вне диапазона эталона [5857, 1.23218e+06].",
+    "КРИТИЧНО: В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 11.0% строк текущего батча.",
+    "ВНИМАНИЕ: дрейф целевой переменной 'target' — chi2=429 (p=<1e-16), jensen_shannon=0.13.",
+    "КРИТИЧНО: дрейф по признаку 'age' — ks=0.239 (p=<1e-16), psi=0.337, jensen_shannon=0.243, wasserstein_norm=0.605.",
+    "ВНИМАНИЕ: дрейф по признаку 'income' — ks=0.185 (p=<1e-16), psi=0.193, jensen_shannon=0.185, wasserstein_norm=0.465.",
+    "КРИТИЧНО: дрейф по признаку 'loan_amount' — ks=0.221 (p=<1e-16), psi=0.388, jensen_shannon=0.26, wasserstein_norm=0.428.",
+    "КРИТИЧНО: дрейф по признаку 'channel' — chi2=2.25e+03 (p=<1e-16), psi=0.782, jensen_shannon=0.238.",
+    "КРИТИЧНО: adversarial validation различает выборки (ROC-AUC=0.845); сильнее всего изменились: loan_amount, income, channel."
+  ],
+  "schema": [],
+  "data_quality": [
+    {
+      "check": "missing_values",
+      "severity": "warning",
+      "message": "Доля пропусков в 'income' выросла с 7.7% до 19.3% (+11.6 п.п.).",
+      "column": "income",
+      "value": 0.1158
+    },
+    {
+      "check": "out_of_range",
+      "severity": "critical",
+      "message": "16.8% значений 'loan_amount' вне диапазона эталона [5857, 1.23218e+06].",
+      "column": "loan_amount",
+      "value": 0.1678
+    },
+    {
+      "check": "new_categories",
+      "severity": "critical",
+      "message": "В 'channel' появились категории, не предусмотренные эталоном: ['партнёрская сеть'] — 11.0% строк текущего батча.",
+      "column": "channel",
+      "value": 0.1098
+    }
+  ],
+  "columns": [
+    {
+      "column": "age",
+      "kind": "numeric",
+      "severity": "critical",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.2389,
+          "severity": "warning",
+          "p_value": 2.7534817419587715e-201,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.3368,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.2427,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {}
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.6049,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 9.853607
+          }
+        }
+      ]
+    },
+    {
+      "column": "income",
+      "kind": "numeric",
+      "severity": "warning",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.1855,
+          "severity": "warning",
+          "p_value": 3.3438982387001303e-100,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.1931,
+          "severity": "warning",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.1848,
+          "severity": "warning",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {}
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.4652,
+          "severity": "warning",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 36449.011873
+          }
+        }
+      ]
+    },
+    {
+      "column": "loan_amount",
+      "kind": "numeric",
+      "severity": "critical",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.2213,
+          "severity": "warning",
+          "p_value": 1.5552571523073612e-172,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.388,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.26,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {}
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.4276,
+          "severity": "warning",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 84184.04552
+          }
+        }
+      ]
+    },
+    {
+      "column": "credit_history_years",
+      "kind": "numeric",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "ks",
+          "statistic": 0.0088,
+          "severity": "ok",
+          "p_value": 0.909902164777643,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0009,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_bins": 10
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0128,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {}
+        },
+        {
+          "name": "wasserstein_norm",
+          "statistic": 0.0129,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.3, critical >= 0.5",
+          "details": {
+            "scale_std": 3.868981
+          }
+        }
+      ]
+    },
+    {
+      "column": "num_dependents",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 1.3571,
+          "severity": "ok",
+          "p_value": 0.7156209639796316,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0003,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 4
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0078,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {}
+        }
+      ]
+    },
+    {
+      "column": "employment_type",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 1.6526,
+          "severity": "ok",
+          "p_value": 0.6475139807072927,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0004,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 4
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0086,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {}
+        }
+      ]
+    },
+    {
+      "column": "region",
+      "kind": "categorical",
+      "severity": "ok",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 0.9617,
+          "severity": "ok",
+          "p_value": 0.8105268997740263,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": false
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.0002,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 4
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.0066,
+          "severity": "ok",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {}
+        }
+      ]
+    },
+    {
+      "column": "channel",
+      "kind": "categorical",
+      "severity": "critical",
+      "tests": [
+        {
+          "name": "chi2",
+          "statistic": 2248.78,
+          "severity": "warning",
+          "p_value": 0.0,
+          "threshold": "p < 0.0063 и размер эффекта >= warning",
+          "details": {
+            "significant": true
+          }
+        },
+        {
+          "name": "psi",
+          "statistic": 0.7818,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {
+            "n_categories": 4
+          }
+        },
+        {
+          "name": "jensen_shannon",
+          "statistic": 0.2384,
+          "severity": "critical",
+          "p_value": null,
+          "threshold": "warning >= 0.1, critical >= 0.2",
+          "details": {}
+        }
+      ]
+    }
+  ],
+  "adversarial": {
+    "roc_auc": 0.8451,
+    "severity": "critical",
+    "backend": "lightgbm",
+    "n_rows_used": 25000,
+    "top_features": [
+      {
+        "feature": "loan_amount",
+        "importance": 0.422
+      },
+      {
+        "feature": "income",
+        "importance": 0.2307
+      },
+      {
+        "feature": "channel",
+        "importance": 0.1532
+      },
+      {
+        "feature": "age",
+        "importance": 0.1431
+      },
+      {
+        "feature": "credit_history_years",
+        "importance": 0.0324
+      },
+      {
+        "feature": "num_dependents",
+        "importance": 0.0063
+      },
+      {
+        "feature": "employment_type",
+        "importance": 0.0062
+      },
+      {
+        "feature": "region",
+        "importance": 0.006
+      }
+    ]
+  },
+  "meta": {
+    "generated_at": "2026-09-04T12:36:32+00:00",
+    "reference_rows": 20000,
+    "current_rows": 5000,
+    "numeric_columns": [
+      "age",
+      "income",
+      "loan_amount",
+      "credit_history_years"
+    ],
+    "categorical_columns": [
+      "num_dependents",
+      "employment_type",
+      "region",
+      "channel"
+    ],
+    "skipped_columns": [],
+    "excluded_columns": [],
+    "target_column": "target",
+    "prediction_column": null,
+    "alpha_effective": 0.00625,
+    "config": {
+      "thresholds": {
+        "psi_warning": 0.1,
+        "psi_critical": 0.2,
+        "alpha": 0.05,
+        "js_warning": 0.1,
+        "js_critical": 0.2,
+        "wasserstein_warning": 0.3,
+        "wasserstein_critical": 0.5,
+        "adversarial_auc_warning": 0.55,
+        "adversarial_auc_critical": 0.65,
+        "missing_delta_warning": 0.05,
+        "missing_delta_critical": 0.15,
+        "out_of_range_warning": 0.01,
+        "out_of_range_critical": 0.05,
+        "new_category_warning": 0.01,
+        "new_category_critical": 0.05,
+        "duplicates_delta_warning": 0.05,
+        "duplicates_delta_critical": 0.15
+      },
+      "n_bins": 10,
+      "bonferroni": true,
+      "max_categories": 20,
+      "categorical_int_unique_limit": 10,
+      "min_samples": 20,
+      "adversarial_enabled": true,
+      "adversarial_max_rows": 50000,
+      "adversarial_n_jobs": 1,
+      "random_state": 42,
+      "numeric_columns": null,
+      "categorical_columns": null,
+      "exclude_columns": null,
+      "target_column": "target",
+      "prediction_column": null,
+      "value_bounds": null,
+      "allowed_categories": null
+    }
+  },
+  "target_drift": {
+    "column": "target",
+    "kind": "categorical",
+    "severity": "warning",
+    "tests": [
+      {
+        "name": "chi2",
+        "statistic": 428.5936,
+        "severity": "warning",
+        "p_value": 3.288376798129401e-95,
+        "threshold": "p < 0.05 и размер эффекта >= warning",
+        "details": {
+          "significant": true
+        }
+      },
+      {
+        "name": "psi",
+        "statistic": 0.0951,
+        "severity": "ok",
+        "p_value": null,
+        "threshold": "warning >= 0.1, critical >= 0.2",
+        "details": {
+          "n_categories": 2
+        }
+      },
+      {
+        "name": "jensen_shannon",
+        "statistic": 0.1302,
+        "severity": "warning",
+        "p_value": null,
+        "threshold": "warning >= 0.1, critical >= 0.2",
+        "details": {}
+      }
+    ]
+  },
+  "prediction_drift": null
+}
