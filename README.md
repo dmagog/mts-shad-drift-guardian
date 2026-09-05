@@ -68,9 +68,11 @@ for segment in report["segments"]:
     print(segment["label"], segment["overall_severity"], segment["psi_by_column"])
 ```
 
-Из командной строки (код возврата 0 — ok, 1 — warning, 2 — critical; для потока — худший период):
+Из командной строки (код возврата 0 — ok, 1 — warning, 2 — critical; для потока — худший период).
+Демо-CSV в репозитории не хранятся — сначала сгенерируйте их (seed фиксирован):
 
 ```bash
+python scripts/generate_demo.py --out data/demo --seed 42
 drift-guardian --reference data/demo/reference.csv --current data/demo/current_mixed.csv \
     --target target --exclude customer_id --html report.html --json report.json
 ```
@@ -84,11 +86,8 @@ drift-guardian --reference reference.csv --current stream.csv --date-column date
 drift-guardian --reference reference.csv --current batch.csv --segment region --html report.html
 ```
 
-Демо-данные в виде CSV (эталон + шесть сценариев дрейфа, seed фиксирован):
-
-```bash
-python scripts/generate_demo.py --out data/demo --seed 42
-```
+Скрипт `scripts/generate_demo.py` создаёт эталон и шесть сценариев дрейфа (`current_*.csv`);
+те же данные доступны без файлов через `drift_guardian.demo.make_demo`.
 
 ## Дашборд
 
@@ -280,8 +279,10 @@ PSI и JS смещены вверх на малых батчах: их ожид�
 
 ## Реальные данные
 
-Помимо синтетики система прогнана на трёх открытых датасетах OpenML разной формы
-(`scripts/real_data_gallery.py`, отчёты — [`examples/real/`](examples/real/gallery.md)):
+Помимо синтетики система прогнана на трёх открытых датасетах OpenML разной формы:
+[adult](https://www.openml.org/d/1590), [credit-g](https://www.openml.org/d/31) и
+[electricity](https://www.openml.org/d/151) (`scripts/real_data_gallery.py`, датасеты скачиваются
+скриптом, отчёты — [`examples/real/`](examples/real/gallery.md)):
 случайный сплит adult (14 признаков, 49 тыс. строк) даёт «в норме» с adversarial AUC 0.50,
 батч из людей старше 50 лет — «критично» по возрасту, семейному положению и образованию
 при стабильной доле таргета; credit-g (20 признаков, 700 против 300 строк) — «в норме»;

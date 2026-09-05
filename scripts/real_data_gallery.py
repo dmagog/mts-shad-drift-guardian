@@ -92,7 +92,10 @@ def main() -> None:
     header = "| Кейс | Строк (эталон / батч) | Признаков | Итог | Признаки с дрейфом | Таргет | Adv. AUC | Сегментов | Время, с |\n|---|---|---|---|---|---|---|---|---|\n"
     body = "\n".join("| " + " | ".join(str(c) for c in r) + " |" for r in rows)
     (out / "gallery.md").write_text(
-        "# Реальные данные: галерея отчётов\n\nСгенерировано `scripts/real_data_gallery.py`.\n\n" + header + body + "\n",
+        "# Реальные данные: галерея отчётов\n\nСгенерировано `scripts/real_data_gallery.py`. "
+        "Датасеты OpenML скачиваются скриптом: [adult](https://www.openml.org/d/1590), "
+        "[credit-g](https://www.openml.org/d/31), [electricity](https://www.openml.org/d/151).\n\n"
+        + header + body + "\n",
         encoding="utf-8",
     )
     report_copy = Path(__file__).resolve().parents[1] / "report" / "real_data.md"
