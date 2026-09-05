@@ -103,7 +103,12 @@ def explain_column(col: dict, issues: list[dict]) -> str:
             parts.append("стала константой")
     if not parts:
         js = tests.get("jensen_shannon", {}).get("statistic")
-        base = "изменились доли категорий" if col["kind"] == "categorical" else "изменилась форма распределения"
+        if col["severity"] == "ok":
+            base = "без существенных изменений"
+        elif col["kind"] == "categorical":
+            base = "изменились доли категорий"
+        else:
+            base = "изменилась форма распределения"
         parts.append(f"{base} (JS {js:.2f})" if js is not None else base)
     if any(t.get("details", {}).get("underpowered") for t in col["tests"]):
         parts.append("батч мал")

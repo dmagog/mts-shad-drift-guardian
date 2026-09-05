@@ -154,3 +154,11 @@ def test_plural_forms():
         "замечание", "замечания", "замечания", "замечаний", "замечаний", "замечаний",
         "замечание", "замечания", "замечаний",
     ]
+
+
+def test_explain_column_for_stable_feature_says_no_change():
+    from drift_guardian.narrative import explain_column
+
+    col = {"column": "x", "kind": "numeric", "severity": "ok",
+           "tests": [{"name": "jensen_shannon", "statistic": 0.03, "details": {}}]}
+    assert explain_column(col, []).startswith("Без существенных изменений")
