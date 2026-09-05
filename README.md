@@ -21,8 +21,9 @@
 
 ![Обзор дашборда и HTML-отчёта](docs/images/walkthrough.gif)
 
-Кадры по отдельности лежат в [docs/images](docs/images); снимаются скриптом
-`scripts/make_screenshots.py` (headless Chrome через Selenium).
+Кадры по отдельности лежат в [docs/images](docs/images). Статичные снимки делает
+`scripts/make_screenshots.py`, запись с курсором и кликами — `scripts/make_walkthrough.py`
+(headless Chrome через Selenium, сборка GIF через ffmpeg).
 
 ## Что умеет
 
@@ -332,7 +333,8 @@ drift_guardian/            пакет
   cli.py                   командная строка (drift-guardian)
 app/streamlit_app.py       дашборд Streamlit
 scripts/generate_demo.py   демо-данные в CSV
-  scripts/make_screenshots.py скриншоты и GIF для README (нужны selenium, pillow, Chrome)
+  scripts/make_screenshots.py скриншоты для README (нужны selenium, pillow, Chrome)
+  scripts/make_walkthrough.py GIF-запись дашборда с курсором и кликами (плюс ffmpeg)
 scripts/experiments.py     эксперименты для отчёта
 scripts/benchmark_evidently.py   сверка с Evidently
 scripts/build_report.py    сборка итогового отчёта в HTML
