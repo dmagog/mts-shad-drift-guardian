@@ -11,6 +11,19 @@
 
 Итоговый проект «4.0 Школы аналитиков данных» МТС, задача №4. Заказчик — Бояджи Владислав.
 
+## Как это выглядит
+
+![Дашборд: вердикт и карточки «что изменилось»](docs/images/dashboard-verdict.png)
+
+Вердикт с рекомендацией и ключевыми фактами, ниже — карточки поплывших признаков с объяснением,
+полосой PSI и мини-графиком «эталон против батча». Обзор остальных экранов: панель признака,
+разрез по сегментам, временной ряд и HTML-отчёт.
+
+![Обзор дашборда и HTML-отчёта](docs/images/walkthrough.gif)
+
+Кадры по отдельности лежат в [docs/images](docs/images); снимаются скриптом
+`scripts/make_screenshots.py` (headless Chrome через Selenium).
+
 ## Что умеет
 
 | Модуль | Что делает |
@@ -319,6 +332,7 @@ drift_guardian/            пакет
   cli.py                   командная строка (drift-guardian)
 app/streamlit_app.py       дашборд Streamlit
 scripts/generate_demo.py   демо-данные в CSV
+  scripts/make_screenshots.py скриншоты и GIF для README (нужны selenium, pillow, Chrome)
 scripts/experiments.py     эксперименты для отчёта
 scripts/benchmark_evidently.py   сверка с Evidently
 scripts/build_report.py    сборка итогового отчёта в HTML

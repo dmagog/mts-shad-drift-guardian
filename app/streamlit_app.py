@@ -431,15 +431,19 @@ def render_segments(report: dict, key_prefix: str) -> None:
     shown = (f"показаны {len(segments)} из {total}" if total > len(segments)
              else plural(len(segments), "сегмент", "сегмента", "сегментов"))
     ui.section(f"По сегментам «{column}»", f"{shown}, с дрейфом: {n_bad}")
-    left, right = st.columns(2)
-    frame = segment_frame(segments).drop(columns=["первый алерт"])
+    # Таблица и тепловая карта друг под другом: бок о бок таблица из шести колонок
+    # обрезалась уже на ширине 1440 px, а тепловая карта с десятком признаков — и подавно.
+    frame = segment_frame(segments)
     frame["доля батча"] = (frame["доля батча"] * 100).round(0)
-    left.dataframe(
+    st.dataframe(
         style_severity(frame), width="stretch", hide_index=True,
-        column_config={"доля батча": st.column_config.NumberColumn(format="%d %%")},
+        column_config={
+            "доля батча": st.column_config.NumberColumn(format="%d %%"),
+            "первый алерт": st.column_config.TextColumn(width="large"),
+        },
     )
-    right.plotly_chart(segment_heatmap_figure(segments), width="stretch", theme=None,
-                       key=f"{key_prefix}-segments")
+    st.plotly_chart(segment_heatmap_figure(segments), width="stretch", theme=None,
+                    key=f"{key_prefix}-segments")
 
 
 def render_issues(report: dict) -> None:
