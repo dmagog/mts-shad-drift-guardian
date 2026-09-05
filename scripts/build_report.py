@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import base64
 import re
 from pathlib import Path
 
@@ -30,7 +31,22 @@ pre { background: #f0efec; padding: 12px 14px; border-radius: 8px; overflow-x: a
 pre code { background: none; padding: 0; }
 blockquote { border-left: 3px solid #2a78d6; margin: 12px 0; padding: 4px 16px; color: #52514e; }
 .muted { color: #52514e; font-size: 13px; }
+img { display: block; max-width: 100%; height: auto; border: 1px solid #e1e0d9; border-radius: 8px; margin: 14px 0 6px; }
+p.muted { margin-top: 0; }
 """
+
+
+def _inline_images(html: str) -> str:
+    """Встраивает картинки как data URI: отчёт остаётся одним самодостаточным файлом."""
+
+    def replace(match: re.Match) -> str:
+        path = (REPORT_DIR / match.group(1)).resolve()
+        if not path.exists():
+            return match.group(0)
+        mime = "image/gif" if path.suffix == ".gif" else "image/png"
+        return f'src="data:{mime};base64,{base64.b64encode(path.read_bytes()).decode("ascii")}"'
+
+    return re.sub(r'src="([^"]+\.(?:png|gif|jpe?g))"', replace, html)
 
 
 def _embed(text: str, marker: str, filename: str, demote: int = 1) -> str:
@@ -56,6 +72,7 @@ def main() -> None:
     html_body = markdown.markdown(
         source, extensions=["tables", "fenced_code", "toc", "sane_lists"], output_format="html5"
     )
+    html_body = _inline_images(html_body)
     title = re.search(r"^# (.+)$", source, flags=re.M)
     html = (
         "<!doctype html>\n<html lang=\"ru\"><head><meta charset=\"utf-8\">"
