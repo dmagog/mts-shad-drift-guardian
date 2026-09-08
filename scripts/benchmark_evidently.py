@@ -224,7 +224,7 @@ def main() -> None:
     stats_out, summary_md = summary(results)
     md = "\n\n".join([
         "# Сверка с Evidently",
-        f"Evidently {evidently.__version__}, pandas {pd.__version__}. Скрипт: `scripts/benchmark_evidently.py`. "
+        f"Evidently {evidently.__version__}, pandas {pd.__version__}. Скрипт: `scripts/benchmark_evidently.py`. Датасет bank-marketing: https://www.openml.org/d/1461 (скачивается скриптом через OpenML). "
         "Значения Evidently получены её собственными функциями статтестов (`psi_stat_test`, "
         "`jensenshannon_stat_test`, `wasserstein_stat_test`, `ks_stat_test`, `chi_stat_test`) "
         "с её порогами по умолчанию: PSI 0.1, JS 0.1, Вассерштейн/σ 0.1, p-value 0.05. "

@@ -159,8 +159,12 @@ prior shift (изменилась доля классов $P(Y)$) и concept dri
 <h3 id="43">4.3 Тесты дрейфа</h3>
 <p>Для числового признака по эталону строятся 10 квантильных бинов (крайние открыты в бесконечность),
 и по ним считаются PSI $=\sum_i (q_i - p_i)\ln(q_i/p_i)$ и дистанция Йенсена–Шеннона
-$\sqrt{\tfrac12 KL(p|m) + \tfrac12 KL(q|m)}$, $m = (p+q)/2$, по основанию 2. Расстояние
-Вассерштейна первого порядка нормируется на стандартное отклонение эталона. Двухвыборочный
+$\sqrt{\tfrac12 KL(p|m) + \tfrac12 KL(q|m)}$, $m = (p+q)/2$, по основанию 2. Это корень
+из дивергенции Йенсена–Шеннона — симметризованной KL-дивергенции из постановки задачи; дистанция
+удобнее дивергенции тем, что лежит в $[0, 1]$, является метрикой и совпадает с реализацией
+в <code>scipy.spatial.distance.jensenshannon</code> и Evidently, поэтому пороги сопоставимы. Расстояние
+Вассерштейна первого порядка нормируется на стандартное отклонение эталона (для константного
+эталона — на разброс объединённой выборки). Двухвыборочный
 KS-тест даёт p-value. Для категориального признака частоты считаются по объединённому множеству
 категорий (редкие сверх 20 группируются в «прочее»), считаются PSI, JS и хи-квадрат.</p>
 <h3 id="44">4.4 Калибровка порогов</h3>
@@ -882,10 +886,11 @@ ROC-AUC 0.50); сдвиг среднего пойман по <code>age</code> и
 различает батчи почти идеально (0.957) — реальный сезонный дрейф многомерен и велик.</p>
 <h2 id="7-evidently">7. Сверка с Evidently</h2>
 <p>Метрики системы сверены с библиотекой Evidently (де-факто стандарт open-source мониторинга) её
-собственными функциями статтестов на четырёх демо-сценариях и датасете bank-marketing. Скрипт
+собственными функциями статтестов на четырёх демо-сценариях и датасете
+<a href="https://www.openml.org/d/1461">bank-marketing</a> (UCI, скачивается через OpenML). Скрипт
 <code>scripts/benchmark_evidently.py</code> работает в отдельном окружении, потому что у Evidently свои
 требования к зависимостям.</p>
-<p>Evidently 0.7.21, pandas 3.0.5. Скрипт: <code>scripts/benchmark_evidently.py</code>. Значения Evidently получены её собственными функциями статтестов (<code>psi_stat_test</code>, <code>jensenshannon_stat_test</code>, <code>wasserstein_stat_test</code>, <code>ks_stat_test</code>, <code>chi_stat_test</code>) с её порогами по умолчанию: PSI 0.1, JS 0.1, Вассерштейн/σ 0.1, p-value 0.05. Наш вердикт — итоговая серьёзность колонки (двухключевое правило, откалиброванные пороги).</p>
+<p>Evidently 0.7.21, pandas 3.0.5. Скрипт: <code>scripts/benchmark_evidently.py</code>. Датасет bank-marketing: https://www.openml.org/d/1461 (скачивается скриптом через OpenML). Значения Evidently получены её собственными функциями статтестов (<code>psi_stat_test</code>, <code>jensenshannon_stat_test</code>, <code>wasserstein_stat_test</code>, <code>ks_stat_test</code>, <code>chi_stat_test</code>) с её порогами по умолчанию: PSI 0.1, JS 0.1, Вассерштейн/σ 0.1, p-value 0.05. Наш вердикт — итоговая серьёзность колонки (двухключевое правило, откалиброванные пороги).</p>
 <h3 id="_2">Сводка</h3>
 <p>| Метрика | Пар | Spearman ρ | Медиана |наш − Evid.| | Макс. |наш − Evid.| |
 |---|---|---|---|---|
@@ -1950,19 +1955,39 @@ streamlit run app/streamlit_app.py                 # дашборд
 <td><code>tests/test_app.py</code>, <code>tests/test_report.py</code></td>
 </tr>
 <tr>
-<td>Документация, unit-тесты, notebook</td>
-<td><code>README.md</code>, <code>tests/</code>, <code>notebooks/demo.ipynb</code></td>
-<td>CI</td>
+<td>Документация, unit-тесты, notebook с искусственным дрейфом</td>
+<td><code>README.md</code>, <code>tests/</code> (101 тест), <code>notebooks/demo.ipynb</code></td>
+<td>CI на каждый push</td>
 </tr>
 <tr>
-<td>Dockerfile, воспроизводимость</td>
-<td><code>Dockerfile</code>, <code>requirements-lock.txt</code>, <code>scripts/</code></td>
-<td>сборка образа, <code>pip install -e .</code></td>
+<td>Репозиторий: README (описание, установка, запуск, пример), файл зависимостей, конфиги YAML</td>
+<td><code>README.md</code>, <code>pyproject.toml</code>, <code>requirements.txt</code>, <code>requirements-lock.txt</code>, <code>examples/config.yaml</code></td>
+<td>проверка с чистого checkout</td>
 </tr>
 <tr>
-<td>Сверх ТЗ: контракт данных, концептуальный дрейф, поток во времени (в т. ч. к предыдущему периоду), разрез по сегментам, поколоночные пороги, защита от малых выборок, сверка с Evidently</td>
-<td><code>config.py</code>, <code>guardian.py</code>, <code>timeline.py</code>, <code>drift_engines.py</code>, <code>scripts/benchmark_evidently.py</code></td>
-<td><code>tests/test_config.py</code>, <code>tests/test_timeline.py</code>, <code>tests/test_guardian.py</code>, <code>report/benchmark_evidently.md</code></td>
+<td>Итоговый отчёт (HTML) в <code>/report</code></td>
+<td><code>report/report.md</code> → <code>report/report.html</code> (самодостаточный файл)</td>
+<td><code>scripts/build_report.py</code></td>
+</tr>
+<tr>
+<td>Dockerfile и инструкция запуска, скринкаст 2–5 минут</td>
+<td><code>Dockerfile</code>, README; скринкаст по <code>docs/screencast.md</code></td>
+<td>сборка образа; скринкаст прикладывается при сдаче</td>
+</tr>
+<tr>
+<td>Данные ссылками, генератор с фиксированным seed</td>
+<td>OpenML: adult, credit-g, electricity, bank-marketing (ссылки в README и отчёте); <code>scripts/generate_demo.py --seed 42</code></td>
+<td><code>examples/real/gallery.md</code></td>
+</tr>
+<tr>
+<td>Воспроизводимость по README</td>
+<td><code>pip install -e ".[dev]"</code> → <code>pytest</code> → CLI → <code>streamlit run</code></td>
+<td>прогон с чистого checkout (раздел 8)</td>
+</tr>
+<tr>
+<td>Сверх ТЗ: контракт данных, концептуальный дрейф, поток во времени (в т. ч. к предыдущему периоду), разрез по сегментам, поколоночные пороги, защита от малых выборок, сверка с Evidently, прогон на реальных данных</td>
+<td><code>config.py</code>, <code>guardian.py</code>, <code>timeline.py</code>, <code>drift_engines.py</code>, <code>scripts/benchmark_evidently.py</code>, <code>scripts/real_data_gallery.py</code></td>
+<td><code>tests/test_config.py</code>, <code>tests/test_timeline.py</code>, <code>tests/test_guardian.py</code>, <code>report/benchmark_evidently.md</code>, <code>report/real_data.md</code></td>
 </tr>
 </tbody>
 </table></main></body></html>

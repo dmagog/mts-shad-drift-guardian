@@ -130,8 +130,12 @@ prior shift (изменилась доля классов $P(Y)$) и concept dri
 
 Для числового признака по эталону строятся 10 квантильных бинов (крайние открыты в бесконечность),
 и по ним считаются PSI $=\sum_i (q_i - p_i)\ln(q_i/p_i)$ и дистанция Йенсена–Шеннона
-$\sqrt{\tfrac12 KL(p\|m) + \tfrac12 KL(q\|m)}$, $m = (p+q)/2$, по основанию 2. Расстояние
-Вассерштейна первого порядка нормируется на стандартное отклонение эталона. Двухвыборочный
+$\sqrt{\tfrac12 KL(p\|m) + \tfrac12 KL(q\|m)}$, $m = (p+q)/2$, по основанию 2. Это корень
+из дивергенции Йенсена–Шеннона — симметризованной KL-дивергенции из постановки задачи; дистанция
+удобнее дивергенции тем, что лежит в $[0, 1]$, является метрикой и совпадает с реализацией
+в `scipy.spatial.distance.jensenshannon` и Evidently, поэтому пороги сопоставимы. Расстояние
+Вассерштейна первого порядка нормируется на стандартное отклонение эталона (для константного
+эталона — на разброс объединённой выборки). Двухвыборочный
 KS-тест даёт p-value. Для категориального признака частоты считаются по объединённому множеству
 категорий (редкие сверх 20 группируются в «прочее»), считаются PSI, JS и хи-квадрат.
 
@@ -346,7 +350,8 @@ ROC-AUC 0.50); сдвиг среднего пойман по `age` и `income` �
 ## 7. Сверка с Evidently
 
 Метрики системы сверены с библиотекой Evidently (де-факто стандарт open-source мониторинга) её
-собственными функциями статтестов на четырёх демо-сценариях и датасете bank-marketing. Скрипт
+собственными функциями статтестов на четырёх демо-сценариях и датасете
+[bank-marketing](https://www.openml.org/d/1461) (UCI, скачивается через OpenML). Скрипт
 `scripts/benchmark_evidently.py` работает в отдельном окружении, потому что у Evidently свои
 требования к зависимостям.
 
@@ -455,6 +460,10 @@ streamlit run app/streamlit_app.py                 # дашборд
 | Adversarial Validation, ROC-AUC, Feature Importance | `adversarial.py` | `tests/test_adversarial.py` |
 | Schema Validation | `schema.py` | `tests/test_schema.py` |
 | Дашборд Streamlit с подсветкой и алертами / HTML через Plotly | `app/streamlit_app.py`, `html_report.py` | `tests/test_app.py`, `tests/test_report.py` |
-| Документация, unit-тесты, notebook | `README.md`, `tests/`, `notebooks/demo.ipynb` | CI |
-| Dockerfile, воспроизводимость | `Dockerfile`, `requirements-lock.txt`, `scripts/` | сборка образа, `pip install -e .` |
-| Сверх ТЗ: контракт данных, концептуальный дрейф, поток во времени (в т. ч. к предыдущему периоду), разрез по сегментам, поколоночные пороги, защита от малых выборок, сверка с Evidently | `config.py`, `guardian.py`, `timeline.py`, `drift_engines.py`, `scripts/benchmark_evidently.py` | `tests/test_config.py`, `tests/test_timeline.py`, `tests/test_guardian.py`, `report/benchmark_evidently.md` |
+| Документация, unit-тесты, notebook с искусственным дрейфом | `README.md`, `tests/` (101 тест), `notebooks/demo.ipynb` | CI на каждый push |
+| Репозиторий: README (описание, установка, запуск, пример), файл зависимостей, конфиги YAML | `README.md`, `pyproject.toml`, `requirements.txt`, `requirements-lock.txt`, `examples/config.yaml` | проверка с чистого checkout |
+| Итоговый отчёт (HTML) в `/report` | `report/report.md` → `report/report.html` (самодостаточный файл) | `scripts/build_report.py` |
+| Dockerfile и инструкция запуска, скринкаст 2–5 минут | `Dockerfile`, README; скринкаст по `docs/screencast.md` | сборка образа; скринкаст прикладывается при сдаче |
+| Данные ссылками, генератор с фиксированным seed | OpenML: adult, credit-g, electricity, bank-marketing (ссылки в README и отчёте); `scripts/generate_demo.py --seed 42` | `examples/real/gallery.md` |
+| Воспроизводимость по README | `pip install -e ".[dev]"` → `pytest` → CLI → `streamlit run` | прогон с чистого checkout (раздел 8) |
+| Сверх ТЗ: контракт данных, концептуальный дрейф, поток во времени (в т. ч. к предыдущему периоду), разрез по сегментам, поколоночные пороги, защита от малых выборок, сверка с Evidently, прогон на реальных данных | `config.py`, `guardian.py`, `timeline.py`, `drift_engines.py`, `scripts/benchmark_evidently.py`, `scripts/real_data_gallery.py` | `tests/test_config.py`, `tests/test_timeline.py`, `tests/test_guardian.py`, `report/benchmark_evidently.md`, `report/real_data.md` |

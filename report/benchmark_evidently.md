@@ -1,6 +1,6 @@
 # Сверка с Evidently
 
-Evidently 0.7.21, pandas 3.0.5. Скрипт: `scripts/benchmark_evidently.py`. Значения Evidently получены её собственными функциями статтестов (`psi_stat_test`, `jensenshannon_stat_test`, `wasserstein_stat_test`, `ks_stat_test`, `chi_stat_test`) с её порогами по умолчанию: PSI 0.1, JS 0.1, Вассерштейн/σ 0.1, p-value 0.05. Наш вердикт — итоговая серьёзность колонки (двухключевое правило, откалиброванные пороги).
+Evidently 0.7.21, pandas 3.0.5. Скрипт: `scripts/benchmark_evidently.py`. Датасет bank-marketing: https://www.openml.org/d/1461 (скачивается скриптом через OpenML). Значения Evidently получены её собственными функциями статтестов (`psi_stat_test`, `jensenshannon_stat_test`, `wasserstein_stat_test`, `ks_stat_test`, `chi_stat_test`) с её порогами по умолчанию: PSI 0.1, JS 0.1, Вассерштейн/σ 0.1, p-value 0.05. Наш вердикт — итоговая серьёзность колонки (двухключевое правило, откалиброванные пороги).
 
 ## Сводка
 
