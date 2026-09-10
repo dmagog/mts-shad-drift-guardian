@@ -94,7 +94,7 @@ def explain_column(col: dict, issues: list[dict]) -> str:
     for issue in issues:
         value = issue.get("value") or 0.0
         if issue["check"] == "missing_values":
-            parts.append(f"пропусков +{value * 100:.0f} п.п.")
+            parts.append(f"пропусков +{value * 100:.0f} п. п.")
         elif issue["check"] == "out_of_range":
             parts.append(f"{value:.0%} значений вне диапазона")
         elif issue["check"] == "new_categories":

@@ -21,6 +21,14 @@ from drift_guardian.demo import make_demo, make_timeline_demo
 from drift_guardian.io import read_csv_any
 
 
+def _clip(text: str, limit: int) -> str:
+    """Обрезает по границе слова: «Накопите больше дан.» в таблице читается как опечатка."""
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:.") + "…"
+
+
 def _verdict(report: dict) -> tuple[str, str]:
     adversarial = report.get("adversarial")
     extra = ""
@@ -28,8 +36,14 @@ def _verdict(report: dict) -> tuple[str, str]:
         extra = f"; adversarial AUC {adversarial['roc_auc']:.2f}"
         if adversarial.get("overlap_share"):
             extra += f", совпадений строк {adversarial['overlap_share']:.0%}"
-    first_alert = report["alerts"][0] if report["alerts"] else "—"
-    return report["overall_severity"], f"{report['recommendation'][:90]}{extra}. Первый алерт: {first_alert[:110]}"
+    recommendation = _clip(report["recommendation"], 140)
+    if extra:                      # «…в штатном режиме.; adversarial AUC» — точка лишняя
+        recommendation = recommendation.rstrip(".")
+    head = f"{recommendation}{extra}"
+    if not head.endswith((".", "…", "!", "?")):
+        head += "."
+    first_alert = _clip(report["alerts"][0], 140) if report["alerts"] else "—"
+    return report["overall_severity"], f"{head} Первый алерт: {first_alert}"
 
 
 def main() -> None:

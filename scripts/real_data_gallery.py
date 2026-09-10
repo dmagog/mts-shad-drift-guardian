@@ -81,7 +81,8 @@ def main() -> None:
         drifted = [c["column"] for c in report["columns"] if c["severity"] != "ok"]
         adversarial = report["adversarial"]
         rows.append([
-            case["title"], f"{len(case['reference'])} / {len(case['current'])}", len(report["columns"]),
+            case["title"], f"{len(case['reference']):,} / {len(case['current']):,}".replace(",", "\u00a0"),
+            len(report["columns"]),
             report["overall_severity"], ", ".join(map(str, drifted[:6])) + (" …" if len(drifted) > 6 else "") or "—",
             report["target_drift"]["severity"] if report["target_drift"] else "—",
             f"{adversarial['roc_auc']:.2f}" if adversarial else "—",

@@ -1,10 +1,10 @@
 # Сверка с Evidently
 
-Evidently 0.7.21, pandas 3.0.5. Скрипт: `scripts/benchmark_evidently.py`. Датасет bank-marketing: https://www.openml.org/d/1461 (скачивается скриптом через OpenML). Значения Evidently получены её собственными функциями статтестов (`psi_stat_test`, `jensenshannon_stat_test`, `wasserstein_stat_test`, `ks_stat_test`, `chi_stat_test`) с её порогами по умолчанию: PSI 0.1, JS 0.1, Вассерштейн/σ 0.1, p-value 0.05. Наш вердикт — итоговая серьёзность колонки (двухключевое правило, откалиброванные пороги).
+Evidently 0.7.21, pandas 3.0.5. Скрипт: `scripts/benchmark_evidently.py`. Датасет [bank-marketing](https://www.openml.org/d/1461) скачивается скриптом через OpenML. Значения Evidently получены её собственными функциями статтестов (`psi_stat_test`, `jensenshannon_stat_test`, `wasserstein_stat_test`, `ks_stat_test`, `chi_stat_test`) с её порогами по умолчанию: PSI 0.1, JS 0.1, Вассерштейн/σ 0.1, p-value 0.05. Вердикт Data Drift Guardian (в таблицах — DDG) — итоговая серьёзность колонки: двухключевое правило и откалиброванные пороги.
 
 ## Сводка
 
-| Метрика | Пар | Spearman ρ | Медиана |наш − Evid.| | Макс. |наш − Evid.| |
+| Метрика | Пар | Spearman ρ | Медиана расхождения | Макс. расхождение |
 |---|---|---|---|---|
 | PSI | 47 | 0.973 | 0.0000 | 0.4260 |
 | JS | 47 | 0.958 | 0.0037 | 0.1459 |
@@ -15,9 +15,9 @@ Evidently 0.7.21, pandas 3.0.5. Скрипт: `scripts/benchmark_evidently.py`. 
 
 ## По датасетам
 
-### демо: no_drift (эталон 20000, батч 5000)
+### демо: no_drift (эталон 20 000, батч 5 000)
 
-| Признак | Тип | PSI наш | PSI Evid. | JS наш | JS Evid. | W/σ наш | W/σ Evid. | p наш | p Evid. | Вердикт наш | Evidently (метод по умолчанию) |
+| Признак | Тип | PSI DDG | PSI Evid. | JS DDG | JS Evid. | W/σ DDG | W/σ Evid. | p DDG | p Evid. | Вердикт DDG | Evidently (метод по умолчанию) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | age | numeric | 0.001 | 0.003 | 0.013 | 0.019 | 0.015 | 0.015 | 0.94 | 0.94 | ok | нет |
 | income | numeric | 0.003 | 0.006 | 0.021 | 0.019 | 0.019 | 0.019 | 0.79 | 0.79 | ok | нет |
@@ -28,9 +28,9 @@ Evidently 0.7.21, pandas 3.0.5. Скрипт: `scripts/benchmark_evidently.py`. 
 | region | categorical | 0.001 | 0.001 | 0.012 | 0.010 | — | — | 0.38 | 0.27 | ok | нет |
 | channel | categorical | 0.001 | 0.001 | 0.010 | 0.009 | — | — | 0.3 | 0.22 | ok | нет |
 
-### демо: mean_shift (эталон 20000, батч 5000)
+### демо: mean_shift (эталон 20 000, батч 5 000)
 
-| Признак | Тип | PSI наш | PSI Evid. | JS наш | JS Evid. | W/σ наш | W/σ Evid. | p наш | p Evid. | Вердикт наш | Evidently (метод по умолчанию) |
+| Признак | Тип | PSI DDG | PSI Evid. | JS DDG | JS Evid. | W/σ DDG | W/σ Evid. | p DDG | p Evid. | Вердикт DDG | Evidently (метод по умолчанию) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | age | numeric | 0.373 | 0.616 | 0.255 | 0.232 | 0.632 | 0.632 | <1e-16 | <1e-16 | critical | дрейф |
 | income | numeric | 0.191 | 0.177 | 0.184 | 0.148 | 0.448 | 0.448 | <1e-16 | <1e-16 | warning | дрейф |
@@ -41,9 +41,9 @@ Evidently 0.7.21, pandas 3.0.5. Скрипт: `scripts/benchmark_evidently.py`. 
 | region | categorical | 0.001 | 0.001 | 0.009 | 0.008 | — | — | 0.57 | 0.47 | ok | нет |
 | channel | categorical | 0.000 | 0.000 | 0.004 | 0.003 | — | — | 0.84 | 0.81 | ok | нет |
 
-### демо: new_category (эталон 20000, батч 5000)
+### демо: new_category (эталон 20 000, батч 5 000)
 
-| Признак | Тип | PSI наш | PSI Evid. | JS наш | JS Evid. | W/σ наш | W/σ Evid. | p наш | p Evid. | Вердикт наш | Evidently (метод по умолчанию) |
+| Признак | Тип | PSI DDG | PSI Evid. | JS DDG | JS Evid. | W/σ DDG | W/σ Evid. | p DDG | p Evid. | Вердикт DDG | Evidently (метод по умолчанию) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | age | numeric | 0.002 | 0.003 | 0.017 | 0.018 | 0.011 | 0.011 | 1 | 1 | ok | нет |
 | income | numeric | 0.002 | 0.005 | 0.018 | 0.026 | 0.016 | 0.016 | 0.71 | 0.71 | ok | нет |
@@ -54,9 +54,9 @@ Evidently 0.7.21, pandas 3.0.5. Скрипт: `scripts/benchmark_evidently.py`. 
 | region | categorical | 0.000 | 0.000 | 0.005 | 0.004 | — | — | 0.91 | 0.88 | ok | нет |
 | channel | categorical | 0.850 | 0.850 | 0.248 | 0.207 | — | — | <1e-16 | <1e-16 | critical | дрейф |
 
-### демо: mixed (эталон 20000, батч 5000)
+### демо: mixed (эталон 20 000, батч 5 000)
 
-| Признак | Тип | PSI наш | PSI Evid. | JS наш | JS Evid. | W/σ наш | W/σ Evid. | p наш | p Evid. | Вердикт наш | Evidently (метод по умолчанию) |
+| Признак | Тип | PSI DDG | PSI Evid. | JS DDG | JS Evid. | W/σ DDG | W/σ Evid. | p DDG | p Evid. | Вердикт DDG | Evidently (метод по умолчанию) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | age | numeric | 0.337 | 0.594 | 0.243 | 0.226 | 0.605 | 0.605 | <1e-16 | <1e-16 | critical | дрейф |
 | income | numeric | 0.193 | 0.188 | 0.185 | 0.152 | 0.465 | 0.465 | <1e-16 | <1e-16 | warning | дрейф |
@@ -67,9 +67,9 @@ Evidently 0.7.21, pandas 3.0.5. Скрипт: `scripts/benchmark_evidently.py`. 
 | region | categorical | 0.000 | 0.000 | 0.007 | 0.005 | — | — | 0.81 | 0.75 | ok | нет |
 | channel | categorical | 0.782 | 0.782 | 0.238 | 0.199 | — | — | <1e-16 | <1e-16 | critical | дрейф |
 
-### bank-marketing (май–август → сентябрь–декабрь) (эталон 32249, батч 5501)
+### bank-marketing (май–август → сентябрь–декабрь) (эталон 32 249, батч 5 501)
 
-| Признак | Тип | PSI наш | PSI Evid. | JS наш | JS Evid. | W/σ наш | W/σ Evid. | p наш | p Evid. | Вердикт наш | Evidently (метод по умолчанию) |
+| Признак | Тип | PSI DDG | PSI Evid. | JS DDG | JS Evid. | W/σ DDG | W/σ Evid. | p DDG | p Evid. | Вердикт DDG | Evidently (метод по умолчанию) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | V1 | numeric | 0.044 | 0.115 | 0.089 | 0.114 | 0.217 | 0.217 | 2.2e-15 | 2.2e-15 | ok | дрейф |
 | V6 | numeric | 0.280 | 0.101 | 0.221 | 0.106 | 0.451 | 0.451 | <1e-16 | <1e-16 | critical | дрейф |

@@ -22,7 +22,7 @@
       "n": 47,
       "spearman": 0.9969900439916649,
       "median_abs_diff": 0.0,
-      "max_abs_diff": 0.10600689089495213
+      "max_abs_diff": 0.10600689089495252
     },
     "decision_agreement": {
       "agree": 45,
@@ -246,12 +246,12 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.009736993058482059,
+              "score": 0.009736993058482064,
               "drifted": false,
               "threshold": 0.1
             },
             "chi2": {
-              "score": 0.27323446929299794,
+              "score": 0.27323446929299755,
               "drifted": false,
               "threshold": 0.05
             }
@@ -275,7 +275,7 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.008662778823480623,
+              "score": 0.00866277882348063,
               "drifted": false,
               "threshold": 0.1
             },
@@ -476,12 +476,12 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.009736037851183687,
+              "score": 0.00973603785118368,
               "drifted": false,
               "threshold": 0.1
             },
             "chi2": {
-              "score": 0.29029118847186985,
+              "score": 0.2902911884718698,
               "drifted": false,
               "threshold": 0.05
             }
@@ -505,7 +505,7 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.007932018852297452,
+              "score": 0.007932018852297478,
               "drifted": false,
               "threshold": 0.1
             },
@@ -534,7 +534,7 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.0032745385835022483,
+              "score": 0.0032745385835022565,
               "drifted": false,
               "threshold": 0.1
             },
@@ -759,7 +759,7 @@
           },
           "evidently": {
             "psi": {
-              "score": 0.0001387535098035755,
+              "score": 0.00013875350980357553,
               "drifted": false,
               "threshold": 0.1
             },
@@ -793,7 +793,7 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.20722535094825595,
+              "score": 0.20722535094825584,
               "drifted": true,
               "threshold": 0.1
             },
@@ -994,7 +994,7 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.007164073470558464,
+              "score": 0.007164073470558449,
               "drifted": false,
               "threshold": 0.1
             },
@@ -1023,7 +1023,7 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.0054922118840566,
+              "score": 0.005492211884056577,
               "drifted": false,
               "threshold": 0.1
             },
@@ -1047,12 +1047,12 @@
           },
           "evidently": {
             "psi": {
-              "score": 0.78179038939966,
+              "score": 0.7817903893996598,
               "drifted": true,
               "threshold": 0.1
             },
             "js": {
-              "score": 0.19942808950582325,
+              "score": 0.1994280895058232,
               "drifted": true,
               "threshold": 0.1
             },
@@ -1326,12 +1326,12 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.13939015254940199,
+              "score": 0.13939015254940204,
               "drifted": true,
               "threshold": 0.1
             },
             "chi2": {
-              "score": 2.8725084065434066e-177,
+              "score": 2.872508406543244e-177,
               "drifted": true,
               "threshold": 0.05
             }
@@ -1355,7 +1355,7 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.004287129636550002,
+              "score": 0.004287129636550028,
               "drifted": false,
               "threshold": 0.1
             },
@@ -1379,7 +1379,7 @@
           },
           "evidently": {
             "psi": {
-              "score": 0.0556086348625038,
+              "score": 0.055608634862503795,
               "drifted": false,
               "threshold": 0.1
             },
@@ -1495,12 +1495,12 @@
           },
           "evidently": {
             "psi": {
-              "score": 1.1766335642385752,
+              "score": 1.176633564238575,
               "drifted": true,
               "threshold": 0.1
             },
             "js": {
-              "score": 0.34567733077335067,
+              "score": 0.34567733077335056,
               "drifted": true,
               "threshold": 0.1
             },
@@ -1529,7 +1529,7 @@
               "threshold": 0.1
             },
             "js": {
-              "score": 0.20362437753957402,
+              "score": 0.20362437753957385,
               "drifted": true,
               "threshold": 0.1
             },
