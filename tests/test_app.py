@@ -1,7 +1,12 @@
 """Смоук-тесты дашборда через streamlit.testing (без браузера)."""
 from pathlib import Path
 
-from streamlit.testing.v1 import AppTest
+import pytest
+
+# Без streamlit тесты дашборда честно пропускаются, а не роняют сбор всего набора:
+# так остальные 96 тестов можно прогнать в минимальном окружении.
+pytest.importorskip("streamlit", reason="тесты дашборда требуют установленный streamlit")
+from streamlit.testing.v1 import AppTest  # noqa: E402
 
 APP_PATH = Path(__file__).resolve().parents[1] / "app" / "streamlit_app.py"
 

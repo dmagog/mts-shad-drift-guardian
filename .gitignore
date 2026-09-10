@@ -15,3 +15,6 @@ reports_out/
 notebooks/output/
 report/*.html.tmp
 .venv-bench/
+
+# Локальный реестр плагина claude-bestpractice
+.claude/claude-bestpractice/
