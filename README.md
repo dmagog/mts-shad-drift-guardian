@@ -25,7 +25,7 @@
 `scripts/make_screenshots.py`, запись с курсором и кликами — `scripts/make_walkthrough.py`
 (headless Chrome через Selenium, сборка GIF через ffmpeg).
 
-**Скринкаст:** [docs/screencast.mp4](https://github.com/dmagog/mts-shad-drift-guardian/blob/main/docs/screencast.mp4) — 3 минуты 16 секунд с закадровым текстом
+**Скринкаст:** [docs/screencast.mp4](https://github.com/dmagog/mts-shad-drift-guardian/blob/main/docs/screencast.mp4) — 3 минуты 4 секунды с закадровым текстом
 и субтитрами. Видео тоже собирается скриптом: `scripts/make_screencast.py` ведёт дашборд по сценарию
 из [docs/screencast.md](docs/screencast.md), озвучивает текст из
 [docs/voiceover.md](docs/voiceover.md) и сводит дорожки через ffmpeg. В тексте озвучки
