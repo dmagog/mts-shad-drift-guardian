@@ -39,6 +39,7 @@ from .plots import (
     SEVERITY_RANK,
     STATUS_LABELS,
     categorical_distribution_figure,
+    clip,
     column_summary_frame,
     compact_figure,
     feature_importance_figure,
@@ -253,7 +254,7 @@ def render_html_report(
     segments = [
         {
             **s, "chip": chip(s["overall_severity"]), "share": f"{s.get('share_current', 0):.0%}",
-            "first_alert": (s["alerts"][0] if s["alerts"] else s.get("recommendation", ""))[:120],
+            "first_alert": clip(s["alerts"][0] if s["alerts"] else s.get("recommendation", ""), 120),
         }
         for s in segments_raw
     ]

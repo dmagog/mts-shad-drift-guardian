@@ -339,9 +339,28 @@ _SEQUENTIAL_BLUE = [
 ]
 
 
+def clip(text: str, limit: int) -> str:
+    """Обрезает по границе слова и ставит многоточие: срез по символу рвёт слово пополам."""
+    text = str(text).strip()
+    if len(text) <= limit:
+        return text
+    head = text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:.")
+    return (head or text[:limit].rstrip()) + "…"
+
+
 def _short(label: str, limit: int = 18) -> str:
-    """Подпись для оси: длинные имена усекаются, полное имя остаётся в подсказке."""
-    return label if len(label) <= limit else label[: limit - 1] + "…"
+    """Подпись для оси: длинные имена усекаются, полное имя остаётся в подсказке.
+
+    Режем по разделителю слова (``_``, ``-``, пробел), если он есть достаточно близко:
+    ``credit_history_years`` читается как ``credit_history…``, а не ``credit_history_ye…``.
+    """
+    if len(label) <= limit:
+        return label
+    head = label[: limit - 1]
+    cut = max(head.rfind(sep) for sep in ("_", "-", " "))
+    if cut >= limit // 2:
+        head = head[:cut]
+    return head + "…"
 
 
 def segment_heatmap_figure(
@@ -389,7 +408,7 @@ def segment_frame(segments: list[dict]) -> pd.DataFrame:
                 "статус": STATUS_LABELS[s["overall_severity"]],
                 "critical": s["n_critical"],
                 "warning": s["n_warning"],
-                "первый алерт": (s["alerts"][0] if s["alerts"] else s.get("recommendation", ""))[:120],
+                "первый алерт": clip(s["alerts"][0] if s["alerts"] else s.get("recommendation", ""), 120),
             }
         )
     return pd.DataFrame(rows)

@@ -831,7 +831,7 @@
     "note": "0% строк батча точно совпадают со строками эталона и исключены из adversarial-валидации."
   },
   "meta": {
-    "generated_at": "2026-09-10T19:30:58+00:00",
+    "generated_at": "2026-09-11T04:25:56+00:00",
     "reference_rows": 30000,
     "current_rows": 18842,
     "numeric_columns": [

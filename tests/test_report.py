@@ -162,3 +162,17 @@ def test_explain_column_for_stable_feature_says_no_change():
     col = {"column": "x", "kind": "numeric", "severity": "ok",
            "tests": [{"name": "jensen_shannon", "statistic": 0.03, "details": {}}]}
     assert explain_column(col, []).startswith("Без существенных изменений")
+
+
+def test_clip_cuts_on_word_boundary_and_marks_the_cut():
+    from drift_guardian.plots import _short, clip
+
+    alert = ("КРИТИЧНО: В 'employment_type' появились категории, не предусмотренные эталоном: "
+             "['самозанятый', 'фрилансер', 'частная практика'] — 12.4% строк.")
+    short = clip(alert, 120)
+    assert len(short) <= 121 and short.endswith("…")
+    assert not short[:-1].endswith(" ") and " " in short
+    assert short[:-1] in alert          # ничего не дописано, только обрезано
+    assert clip("короткая строка", 120) == "короткая строка"
+    assert _short("credit_history_years") == "credit_history…"
+    assert _short("age") == "age"

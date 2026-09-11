@@ -27,6 +27,7 @@ from scipy import stats  # noqa: E402
 
 from drift_guardian import DriftConfig, analyze  # noqa: E402
 from drift_guardian.demo import make_demo  # noqa: E402
+from drift_guardian.plots import clip  # noqa: E402
 
 try:
     from evidently.legacy.calculations.stattests import (
@@ -68,7 +69,7 @@ def evidently_scores(ref: pd.Series, cur: pd.Series, kind: str) -> dict:
             out[name] = {"score": float(score), "drifted": bool(drifted),
                          "threshold": float(test.default_threshold)}
         except Exception as exc:  # noqa: BLE001
-            out[name] = {"error": f"{type(exc).__name__}: {str(exc)[:80]}"}
+            out[name] = {"error": f"{type(exc).__name__}: {clip(str(exc), 80)}"}
     return out
 
 
