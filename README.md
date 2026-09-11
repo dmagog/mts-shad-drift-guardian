@@ -21,15 +21,11 @@
 
 ![Обзор дашборда и HTML-отчёта](docs/images/walkthrough.gif)
 
-Кадры по отдельности лежат в [docs/images](docs/images). Статичные снимки делает
-`scripts/make_screenshots.py`, запись с курсором и кликами — `scripts/make_walkthrough.py`
-(headless Chrome через Selenium, сборка GIF через ffmpeg).
+Кадры по отдельности лежат в [docs/images](docs/images).
 
-**Скринкаст:** [docs/screencast.mp4](https://github.com/dmagog/mts-shad-drift-guardian/blob/main/docs/screencast.mp4) — 3 минуты 2 секунды с закадровым текстом
-и субтитрами. Видео тоже собирается скриптом: `scripts/make_screencast.py` ведёт дашборд по сценарию
-из [docs/screencast.md](docs/screencast.md), озвучивает текст из
-[docs/voiceover.md](docs/voiceover.md) и сводит дорожки через ffmpeg. В тексте озвучки
-размечены ударения и смысловые паузы.
+**Скринкаст:** [docs/screencast.mp4](https://github.com/dmagog/mts-shad-drift-guardian/blob/main/docs/screencast.mp4) — 3 минуты 2 секунды
+с закадровым текстом и субтитрами: вердикт, карточки признаков, панель признака, разрез
+по сегментам, временной ряд и экспорт.
 
 ## Что умеет
 
@@ -359,15 +355,13 @@ drift_guardian/                 пакет
   cli.py                        командная строка (drift-guardian)
 app/streamlit_app.py            дашборд Streamlit
 scripts/generate_demo.py        демо-данные в CSV
-scripts/make_screenshots.py     скриншоты для README (нужны Selenium, Pillow, Chrome)
-scripts/make_walkthrough.py     GIF-запись дашборда с курсором и кликами (плюс ffmpeg)
 scripts/experiments.py          эксперименты для отчёта
 scripts/benchmark_evidently.py  сверка с Evidently
 scripts/build_report.py         сборка итогового отчёта в HTML
 notebooks/demo.ipynb            демонстрационный notebook (выполнен, с выводами)
 report/                         итоговый отчёт, эксперименты, сверка с Evidently
 examples/                       пример конфига, HTML- и JSON-отчёта
-docs/screencast.md              сценарий скринкаста
+docs/                           скринкаст, скриншоты и GIF-обзор
 tests/                          pytest: модули, отчёт, CLI, дашборд (streamlit.testing)
 Dockerfile                      образ с дашбордом и CLI
 ```

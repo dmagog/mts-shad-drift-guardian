@@ -521,7 +521,7 @@ streamlit run app/streamlit_app.py                 # дашборд
 | Документация, unit-тесты, notebook с искусственным дрейфом | `README.md`, `tests/` (101 тест), `notebooks/demo.ipynb` | CI на каждый push |
 | Репозиторий: README (описание, установка, запуск, пример), файл зависимостей, конфиги YAML | `README.md`, `pyproject.toml`, `requirements.txt`, `requirements-lock.txt`, `examples/config.yaml` | проверка с чистого checkout |
 | Итоговый отчёт (HTML) в `/report` | `report/report.md` → `report/report.html` (самодостаточный файл) | `scripts/build_report.py` |
-| Dockerfile и инструкция запуска, скринкаст 2–5 минут | `Dockerfile`, README; скринкаст по `docs/screencast.md` | сборка образа; скринкаст прикладывается при сдаче |
+| Dockerfile и инструкция запуска, скринкаст 2–5 минут | `Dockerfile`, README; скринкаст `docs/screencast.mp4` | сборка образа; скринкаст прикладывается при сдаче |
 | Данные ссылками, генератор с фиксированным seed | OpenML: adult, credit-g, electricity, bank-marketing (ссылки в README и отчёте); `scripts/generate_demo.py --seed 42` | `examples/real/gallery.md` |
 | Воспроизводимость по README | `pip install -e ".[dev]"` → `pytest` → CLI → `streamlit run` | прогон с чистого клона репозитория |
 | Сверх ТЗ: контракт данных, концептуальный дрейф, поток во времени (в т. ч. к предыдущему периоду), разрез по сегментам, поколоночные пороги, защита от малых выборок, сверка с Evidently, прогон на реальных данных | `config.py`, `guardian.py`, `timeline.py`, `drift_engines.py`, `scripts/benchmark_evidently.py`, `scripts/real_data_gallery.py` | `tests/test_config.py`, `tests/test_timeline.py`, `tests/test_guardian.py`, `report/benchmark_evidently.md`, `report/real_data.md` |

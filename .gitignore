@@ -9,6 +9,15 @@ __pycache__/
 data/
 reports_out/
 
+# Служебное: остаётся локально, в репозиторий не публикуется
+.coverage
+PLAN.md
+docs/screencast.md
+docs/voiceover.md
+scripts/make_screencast.py
+scripts/make_screenshots.py
+scripts/make_walkthrough.py
+
 # Системное
 .DS_Store
 .ipynb_checkpoints/
