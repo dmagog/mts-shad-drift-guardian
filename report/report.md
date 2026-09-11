@@ -8,7 +8,7 @@
 - **Репозиторий:** <https://github.com/dmagog/mts-shad-drift-guardian>
 - **Дашборд:** `streamlit run app/streamlit_app.py` или `docker run -p 8501:8501 drift-guardian`
 - **Демонстрационный notebook:** `notebooks/demo.ipynb`
-- **Скринкаст:** [docs/screencast.mp4](https://github.com/dmagog/mts-shad-drift-guardian/blob/main/docs/screencast.mp4) — 2 мин 43 с, с закадровым текстом и субтитрами
+- **Скринкаст:** [docs/screencast.mp4](https://github.com/dmagog/mts-shad-drift-guardian/blob/main/docs/screencast.mp4) — 2 мин 47 с, с закадровым текстом и субтитрами
 
 <!-- TOC -->
 
